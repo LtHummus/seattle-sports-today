@@ -8,6 +8,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.27.11
 	github.com/aws/aws-sdk-go-v2/service/cloudfront v1.35.4
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.53.1
+	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.28.6
 	github.com/rs/zerolog v1.32.0
 	golang.org/x/sync v0.7.0
 )

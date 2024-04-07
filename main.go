@@ -14,6 +14,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/lthummus/seattle-sports-today/events"
+	"github.com/lthummus/seattle-sports-today/notifier"
 	"github.com/lthummus/seattle-sports-today/uploader"
 )
 
@@ -50,6 +51,7 @@ func eventHandler(ctx context.Context) error {
 	log.Info().Msg("getting today's games")
 	events, err := events.GetTodaysGames(ctx)
 	if err != nil {
+		_ = notifier.Notify(ctx, fmt.Sprintf("ERROR: could not get today's games: %s", err.Error()), notifier.PriorityHigh, notifier.EmojiSiren)
 		return err
 	}
 
@@ -58,6 +60,7 @@ func eventHandler(ctx context.Context) error {
 	log.Info().Msg("rendering page")
 	page, err := renderPage(events)
 	if err != nil {
+		_ = notifier.Notify(ctx, fmt.Sprintf("ERROR: could not render page: %s", err.Error()), notifier.PriorityHigh, notifier.EmojiSiren)
 		return err
 	}
 
@@ -66,12 +69,15 @@ func eventHandler(ctx context.Context) error {
 	log.Info().Msg("beginning upload")
 	err = uploader.Upload(ctx, page)
 	if err != nil {
+		_ = notifier.Notify(ctx, fmt.Sprintf("ERROR: upload page: %s", err.Error()), notifier.PriorityHigh, notifier.EmojiSiren)
 		return err
 	}
 
 	log.Info().Msg("upload complete")
 
 	log.Info().Msg("all in a day's work...")
+
+	_ = notifier.Notify(ctx, fmt.Sprintf("Everything worked! Found %d game(s)", len(events)), notifier.PriorityDefault, notifier.EmojiParty)
 
 	return nil
 }

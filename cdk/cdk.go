@@ -15,13 +15,15 @@ import (
 	"github.com/aws/aws-cdk-go/awscdk/v2/awss3"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awss3assets"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awss3deployment"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awssecretsmanager"
 
 	"github.com/aws/constructs-go/constructs/v10"
 	"github.com/aws/jsii-runtime-go"
 )
 
 const (
-	domainName = "isthereaseattlehomegametoday.com"
+	domainName             = "isthereaseattlehomegametoday.com"
+	notificationSecretName = "seattle-sports-today/ntfy-secret"
 )
 
 type CdkStackProps struct {
@@ -34,6 +36,8 @@ func NewCdkStack(scope constructs.Construct, id string, props *CdkStackProps) aw
 		sprops = props.StackProps
 	}
 	stack := awscdk.NewStack(scope, &id, &sprops)
+
+	notificationSecret := awssecretsmanager.Secret_FromSecretNameV2(stack, jsii.String("NotificationSecret"), jsii.String(notificationSecretName))
 
 	bucket := awss3.NewBucket(stack, jsii.String("hosting-bucket"), &awss3.BucketProps{
 		AccessControl: awss3.BucketAccessControl_PRIVATE,
@@ -83,11 +87,13 @@ func NewCdkStack(scope constructs.Construct, id string, props *CdkStackProps) aw
 		Environment: &map[string]*string{
 			"UPLOAD_S3_BUCKET_NAME":     bucket.BucketName(),
 			"UPLOAD_CF_DISTRIBUTION_ID": distribution.DistributionId(),
+			"NOTIFIER_SECRET_NAME":      jsii.String(notificationSecretName),
 		},
 	})
 
 	bucket.GrantWrite(updateFunction, nil, nil)
 	distribution.GrantCreateInvalidation(updateFunction)
+	notificationSecret.GrantRead(updateFunction, nil)
 
 	eventRule := awsevents.NewRule(stack, jsii.String("UpdateFunctionCron"), &awsevents.RuleProps{
 		Schedule: awsevents.Schedule_Cron(&awsevents.CronOptions{
