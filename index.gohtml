@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark" />
+    <link rel="stylesheet" href="/pico.min.css">
+    <link rel="stylesheet" href="/seattle_sports.css">
+    <title>Is there a Seattle home game today?</title>
+</head>
+<body>
+<header class="container">
+
+    <h1 id="answer">{{ if .Events }}YES{{ else }}NO{{ end }}</h1>
+</header>
+<main class="container">
+    <div class="grid">
+        {{ range .Events}}
+            <div>
+                <p>{{ .TeamName }} are playing at {{ .Venue }}. The game starts at {{ .LocalTime }}</p>
+            </div>
+        {{ end }}
+    </div>
+</main>
+</body>
+</html>

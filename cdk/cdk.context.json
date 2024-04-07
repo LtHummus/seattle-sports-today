@@ -1,0 +1,10 @@
+{
+  "hosted-zone:account=181698049423:domainName=isthereaseattlehomegametoday.com:region=us-west-2": {
+    "Id": "/hostedzone/Z051578831MX6N49T3S1V",
+    "Name": "isthereaseattlehomegametoday.com."
+  },
+  "hosted-zone:account=181698049423:domainName=isthereaseattlehomegametoday.com:region=us-east-1": {
+    "Id": "/hostedzone/Z051578831MX6N49T3S1V",
+    "Name": "isthereaseattlehomegametoday.com."
+  }
+}
