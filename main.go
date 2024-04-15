@@ -85,5 +85,9 @@ func eventHandler(ctx context.Context) error {
 func main() {
 	log.Info().Msg("hello world")
 
-	lambda.Start(eventHandler)
+	if os.Getenv("_HANDLER") != "" {
+		lambda.Start(eventHandler)
+	} else {
+		eventHandler(context.Background())
+	}
 }
