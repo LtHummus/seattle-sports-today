@@ -77,7 +77,10 @@ func eventHandler(ctx context.Context) error {
 
 	log.Info().Msg("all in a day's work...")
 
-	_ = notifier.Notify(ctx, fmt.Sprintf("Everything worked! Found %d game(s)", len(events)), notifier.PriorityDefault, notifier.EmojiParty)
+	err = notifier.Notify(ctx, fmt.Sprintf("Everything worked! Found %d game(s)", len(events)), notifier.PriorityDefault, notifier.EmojiParty)
+	if err != nil {
+		log.Warn().Err(err).Msg("error sending notification")
+	}
 
 	return nil
 }
