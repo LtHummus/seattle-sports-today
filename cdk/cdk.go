@@ -97,8 +97,8 @@ func NewCdkStack(scope constructs.Construct, id string, props *CdkStackProps) aw
 
 	eventRule := awsevents.NewRule(stack, jsii.String("UpdateFunctionCron"), &awsevents.RuleProps{
 		Schedule: awsevents.Schedule_Cron(&awsevents.CronOptions{
-			Hour:   jsii.String("12"),
-			Minute: jsii.String("51"),
+			Hour:   jsii.String("10"),
+			Minute: jsii.String("14"),
 		}),
 	})
 	eventRule.AddTarget(awseventstargets.NewLambdaFunction(updateFunction, &awseventstargets.LambdaFunctionProps{}))

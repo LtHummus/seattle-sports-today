@@ -107,7 +107,8 @@ type mlbTodayGamesResponse struct {
 }
 
 func GetMarinersGame(ctx context.Context) (*Event, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://statsapi.mlb.com/api/v1/schedule/games/?sportId=1", nil)
+	formattedDate := time.Now().Format("01/02/2006")
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("https://statsapi.mlb.com/api/v1/schedule/games/?sportId=1&date=%s", formattedDate), nil)
 	if err != nil {
 		return nil, fmt.Errorf("events: GetMarinersGame: could not build request: %w", err)
 	}
