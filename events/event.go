@@ -39,6 +39,7 @@ func GetTodaysGames(ctx context.Context) ([]*Event, error) {
 	var krakenGame *Event
 	var seahawksGame *Event
 	var stormGame *Event
+	var reignGame *Event
 
 	eg.Go(func() error {
 		var e error
@@ -70,6 +71,12 @@ func GetTodaysGames(ctx context.Context) ([]*Event, error) {
 		return e
 	})
 
+	eg.Go(func() error {
+		var e error
+		reignGame, e = GetStormGame(ctx2)
+		return e
+	})
+
 	err := eg.Wait()
 	if err != nil {
 		return nil, err
@@ -90,6 +97,9 @@ func GetTodaysGames(ctx context.Context) ([]*Event, error) {
 	}
 	if stormGame != nil {
 		events = append(events, stormGame)
+	}
+	if reignGame != nil {
+		events = append(events, reignGame)
 	}
 
 	return events, nil
