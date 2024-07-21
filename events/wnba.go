@@ -11,7 +11,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type espnNFLResponse struct {
+type espnWNBAResponse struct {
 	Leagues []struct {
 		Id           string `json:"id"`
 		Uid          string `json:"uid"`
@@ -38,32 +38,19 @@ type espnNFLResponse struct {
 			Rel         []string `json:"rel"`
 			LastUpdated string   `json:"lastUpdated"`
 		} `json:"logos"`
-		CalendarType        string `json:"calendarType"`
-		CalendarIsWhitelist bool   `json:"calendarIsWhitelist"`
-		CalendarStartDate   string `json:"calendarStartDate"`
-		CalendarEndDate     string `json:"calendarEndDate"`
-		Calendar            []struct {
-			Label     string `json:"label"`
-			Value     string `json:"value"`
-			StartDate string `json:"startDate"`
-			EndDate   string `json:"endDate"`
-			Entries   []struct {
-				Label          string `json:"label"`
-				AlternateLabel string `json:"alternateLabel"`
-				Detail         string `json:"detail"`
-				Value          string `json:"value"`
-				StartDate      string `json:"startDate"`
-				EndDate        string `json:"endDate"`
-			} `json:"entries"`
-		} `json:"calendar"`
+		CalendarType        string   `json:"calendarType"`
+		CalendarIsWhitelist bool     `json:"calendarIsWhitelist"`
+		CalendarStartDate   string   `json:"calendarStartDate"`
+		CalendarEndDate     string   `json:"calendarEndDate"`
+		Calendar            []string `json:"calendar"`
 	} `json:"leagues"`
 	Season struct {
 		Type int `json:"type"`
 		Year int `json:"year"`
 	} `json:"season"`
-	Week struct {
-		Number int `json:"number"`
-	} `json:"week"`
+	Day struct {
+		Date string `json:"date"`
+	} `json:"day"`
 	Events []struct {
 		Id        string `json:"id"`
 		Uid       string `json:"uid"`
@@ -75,9 +62,6 @@ type espnNFLResponse struct {
 			Type int    `json:"type"`
 			Slug string `json:"slug"`
 		} `json:"season"`
-		Week struct {
-			Number int `json:"number"`
-		} `json:"week"`
 		Competitions []struct {
 			Id         string `json:"id"`
 			Uid        string `json:"uid"`
@@ -97,7 +81,7 @@ type espnNFLResponse struct {
 				FullName string `json:"fullName"`
 				Address  struct {
 					City  string `json:"city"`
-					State string `json:"state,omitempty"`
+					State string `json:"state"`
 				} `json:"address"`
 				Indoor bool `json:"indoor"`
 			} `json:"venue"`
@@ -130,13 +114,53 @@ type espnNFLResponse struct {
 					} `json:"links"`
 					Logo string `json:"logo"`
 				} `json:"team"`
-				Score      string        `json:"score"`
-				Statistics []interface{} `json:"statistics"`
+				Score      string `json:"score"`
+				Statistics []struct {
+					Name             string `json:"name"`
+					Abbreviation     string `json:"abbreviation"`
+					DisplayValue     string `json:"displayValue"`
+					RankDisplayValue string `json:"rankDisplayValue,omitempty"`
+				} `json:"statistics"`
+				Records []struct {
+					Name         string `json:"name"`
+					Abbreviation string `json:"abbreviation,omitempty"`
+					Type         string `json:"type"`
+					Summary      string `json:"summary"`
+				} `json:"records"`
+				Leaders []struct {
+					Name             string `json:"name"`
+					DisplayName      string `json:"displayName"`
+					ShortDisplayName string `json:"shortDisplayName"`
+					Abbreviation     string `json:"abbreviation"`
+					Leaders          []struct {
+						DisplayValue string  `json:"displayValue"`
+						Value        float64 `json:"value"`
+						Athlete      struct {
+							Id          string `json:"id"`
+							FullName    string `json:"fullName"`
+							DisplayName string `json:"displayName"`
+							ShortName   string `json:"shortName"`
+							Links       []struct {
+								Rel  []string `json:"rel"`
+								Href string   `json:"href"`
+							} `json:"links"`
+							Headshot string `json:"headshot"`
+							Jersey   string `json:"jersey"`
+							Position struct {
+								Abbreviation string `json:"abbreviation"`
+							} `json:"position"`
+							Team struct {
+								Id string `json:"id"`
+							} `json:"team"`
+							Active bool `json:"active"`
+						} `json:"athlete"`
+						Team struct {
+							Id string `json:"id"`
+						} `json:"team"`
+					} `json:"leaders"`
+				} `json:"leaders"`
 			} `json:"competitors"`
-			Notes []struct {
-				Type     string `json:"type"`
-				Headline string `json:"headline"`
-			} `json:"notes"`
+			Notes  []interface{} `json:"notes"`
 			Status struct {
 				Clock        float64 `json:"clock"`
 				DisplayClock string  `json:"displayClock"`
@@ -150,7 +174,6 @@ type espnNFLResponse struct {
 					Detail      string `json:"detail"`
 					ShortDetail string `json:"shortDetail"`
 				} `json:"type"`
-				IsTBDFlex bool `json:"isTBDFlex"`
 			} `json:"status"`
 			Broadcasts []struct {
 				Market string   `json:"market"`
@@ -184,84 +207,6 @@ type espnNFLResponse struct {
 				Lang   string `json:"lang"`
 				Region string `json:"region"`
 			} `json:"geoBroadcasts"`
-			Odds []struct {
-				Provider struct {
-					Id       string `json:"id"`
-					Name     string `json:"name"`
-					Priority int    `json:"priority"`
-				} `json:"provider"`
-				Details      string  `json:"details"`
-				OverUnder    float64 `json:"overUnder"`
-				Spread       float64 `json:"spread"`
-				AwayTeamOdds struct {
-					Favorite bool `json:"favorite"`
-					Underdog bool `json:"underdog"`
-					Team     struct {
-						Id           string `json:"id"`
-						Uid          string `json:"uid"`
-						Abbreviation string `json:"abbreviation"`
-						Name         string `json:"name"`
-						DisplayName  string `json:"displayName"`
-						Logo         string `json:"logo"`
-					} `json:"team"`
-				} `json:"awayTeamOdds"`
-				HomeTeamOdds struct {
-					Favorite bool `json:"favorite"`
-					Underdog bool `json:"underdog"`
-					Team     struct {
-						Id           string `json:"id"`
-						Uid          string `json:"uid"`
-						Abbreviation string `json:"abbreviation"`
-						Name         string `json:"name"`
-						DisplayName  string `json:"displayName"`
-						Logo         string `json:"logo"`
-					} `json:"team"`
-				} `json:"homeTeamOdds"`
-				Open struct {
-					Over struct {
-						Value                 float64 `json:"value"`
-						DisplayValue          string  `json:"displayValue"`
-						AlternateDisplayValue string  `json:"alternateDisplayValue"`
-						Decimal               float64 `json:"decimal"`
-						Fraction              string  `json:"fraction"`
-						American              string  `json:"american"`
-					} `json:"over"`
-					Under struct {
-						Value                 float64 `json:"value"`
-						DisplayValue          string  `json:"displayValue"`
-						AlternateDisplayValue string  `json:"alternateDisplayValue"`
-						Decimal               float64 `json:"decimal"`
-						Fraction              string  `json:"fraction"`
-						American              string  `json:"american"`
-					} `json:"under"`
-					Total struct {
-						AlternateDisplayValue string `json:"alternateDisplayValue"`
-						American              string `json:"american"`
-					} `json:"total"`
-				} `json:"open"`
-				Current struct {
-					Over struct {
-						Value                 float64 `json:"value"`
-						DisplayValue          string  `json:"displayValue"`
-						AlternateDisplayValue string  `json:"alternateDisplayValue"`
-						Decimal               float64 `json:"decimal"`
-						Fraction              string  `json:"fraction"`
-						American              string  `json:"american"`
-					} `json:"over"`
-					Under struct {
-						Value                 float64 `json:"value"`
-						DisplayValue          string  `json:"displayValue"`
-						AlternateDisplayValue string  `json:"alternateDisplayValue"`
-						Decimal               float64 `json:"decimal"`
-						Fraction              string  `json:"fraction"`
-						American              string  `json:"american"`
-					} `json:"under"`
-					Total struct {
-						AlternateDisplayValue string `json:"alternateDisplayValue"`
-						American              string `json:"american"`
-					} `json:"total"`
-				} `json:"current"`
-			} `json:"odds"`
 		} `json:"competitions"`
 		Links []struct {
 			Language   string   `json:"language"`
@@ -289,17 +234,17 @@ type espnNFLResponse struct {
 	} `json:"events"`
 }
 
-func GetSeahawksGame(ctx context.Context) (*Event, error) {
+func GetStormGame(ctx context.Context) (*Event, error) {
 	today := time.Now().In(seattleTimeZone)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://site.api.espn.com/apis/site/v2/sports/basketball/wnba/scoreboard", nil)
 	if err != nil {
-		return nil, fmt.Errorf("events: GetSeahawksGame: could not build request: %w", err)
+		return nil, fmt.Errorf("events: GetStormGame: could not build request: %w", err)
 	}
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("events: GetSeahawksGame: could not make NFL request: %w", err)
+		return nil, fmt.Errorf("events: GetStormGame: could not make WNBA request: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -307,15 +252,15 @@ func GetSeahawksGame(ctx context.Context) (*Event, error) {
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			log.Error().Err(err).Str("status_code", resp.Status).Msg("could not read error response body")
-			return nil, fmt.Errorf("events: GetSeahawksGame: could not read error body: %w", err)
+			return nil, fmt.Errorf("events: GetStormGame: could not read error body: %w", err)
 		}
-		return nil, fmt.Errorf("events: GetSeahawksGame: could not retireve MLB schedule: %s", string(body))
+		return nil, fmt.Errorf("events: GetStormGame: could not retireve MLB schedule: %s", string(body))
 	}
 
-	var payload espnNFLResponse
+	var payload espnWNBAResponse
 	err = json.NewDecoder(resp.Body).Decode(&payload)
 	if err != nil {
-		return nil, fmt.Errorf("events: GetSeahawksGame: could not decode JSON: %w", err)
+		return nil, fmt.Errorf("events: GetStormGame: could not decode JSON: %w", err)
 	}
 
 	for _, curr := range payload.Events {
@@ -340,7 +285,7 @@ func GetSeahawksGame(ctx context.Context) (*Event, error) {
 			}
 
 			return &Event{
-				TeamName:  "Seattle Seahawks",
+				TeamName:  "Seattle Storm",
 				Venue:     competition.Venue.FullName,
 				LocalTime: seattleStart.Format(localTimeDateFormat),
 				Opponent:  awayTeam.Team.Name,
@@ -349,4 +294,5 @@ func GetSeahawksGame(ctx context.Context) (*Event, error) {
 	}
 
 	return nil, nil
+
 }
