@@ -77,7 +77,7 @@ type espnResponse struct {
 	} `json:"events"`
 }
 
-func queryESPN(ctx context.Context, url string, seattleTeam string) (*Event, error) {
+func queryESPN(ctx context.Context, url string, seattleTeam string, abbreviation string) (*Event, error) {
 	today := time.Now().In(seattleTimeZone)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -119,7 +119,7 @@ func queryESPN(ctx context.Context, url string, seattleTeam string) (*Event, err
 			awayTeam = competition.Competitors[0]
 		}
 
-		if homeTeam.Team.Abbreviation == "SEA" {
+		if homeTeam.Team.Abbreviation == abbreviation {
 			gameTime, err := time.Parse("2006-01-02T15:04Z", competition.StartDate)
 			if err != nil {
 				log.Error().Err(err).Str("seattle_team", seattleTeam).Msg("could not parse start time")
