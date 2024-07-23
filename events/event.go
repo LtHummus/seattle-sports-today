@@ -74,7 +74,7 @@ func GetTodaysGames(ctx context.Context) ([]*Event, error) {
 
 	eg.Go(func() error {
 		var e error
-		reignGame, e = GetStormGame(ctx2)
+		reignGame, e = GetReignGame(ctx2)
 		return e
 	})
 
