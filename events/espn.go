@@ -78,7 +78,7 @@ type espnResponse struct {
 }
 
 func queryESPN(ctx context.Context, url string, seattleTeam string, abbreviation string) (*Event, error) {
-	today := time.Now().In(seattleTimeZone)
+	today := time.Now().In(SeattleTimeZone)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -126,7 +126,7 @@ func queryESPN(ctx context.Context, url string, seattleTeam string, abbreviation
 				return nil, fmt.Errorf("events: queryESPN: could not parse start time: %w", err)
 			}
 
-			seattleStart := gameTime.In(seattleTimeZone)
+			seattleStart := gameTime.In(SeattleTimeZone)
 			if today.Year() != seattleStart.Year() || today.YearDay() != seattleStart.YearDay() {
 				continue
 			}
@@ -134,7 +134,7 @@ func queryESPN(ctx context.Context, url string, seattleTeam string, abbreviation
 			return &Event{
 				TeamName:  seattleTeam,
 				Venue:     curr.Venue.DisplayName,
-				LocalTime: gameTime.In(seattleTimeZone).Format(localTimeDateFormat),
+				LocalTime: gameTime.In(SeattleTimeZone).Format(localTimeDateFormat),
 				Opponent:  awayTeam.Team.Name,
 			}, nil
 		}

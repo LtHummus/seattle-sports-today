@@ -224,7 +224,7 @@ func GetKrakenGame(ctx context.Context) (*Event, error) {
 			continue
 		}
 
-		startTimeLocal := curr.StartTimeUTC.In(seattleTimeZone).Format(localTimeDateFormat)
+		startTimeLocal := curr.StartTimeUTC.In(SeattleTimeZone).Format(localTimeDateFormat)
 
 		return &Event{
 			TeamName:  "Seattle Kraken",

@@ -136,7 +136,7 @@ func GetMarinersGame(ctx context.Context) (*Event, error) {
 
 	for _, curr := range payload.Dates[0].Games {
 		if curr.Teams.Home.Team.Id == marinersTeamID {
-			startTime := curr.GameDate.In(seattleTimeZone).Format(localTimeDateFormat)
+			startTime := curr.GameDate.In(SeattleTimeZone).Format(localTimeDateFormat)
 
 			return &Event{
 				TeamName:  "Seattle Mariners",

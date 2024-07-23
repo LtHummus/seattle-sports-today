@@ -5,3 +5,9 @@
     margin-right: auto;
     padding-top: 10%;
 }
+
+.date-footer {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+}

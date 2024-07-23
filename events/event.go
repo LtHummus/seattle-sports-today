@@ -9,7 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-var seattleTimeZone *time.Location
+var SeattleTimeZone *time.Location
 
 const (
 	localTimeDateFormat = "3:04 PM"
@@ -21,7 +21,7 @@ func init() {
 		log.Fatal().Err(err).Msg("could not load seattle timezeone")
 	}
 
-	seattleTimeZone = stz
+	SeattleTimeZone = stz
 }
 
 type Event struct {

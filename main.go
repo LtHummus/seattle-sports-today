@@ -24,7 +24,8 @@ var templateString string
 var pageTemplate *template.Template
 
 type templateParams struct {
-	Events []*events.Event
+	Events        []*events.Event
+	GeneratedDate string
 }
 
 func init() {
@@ -37,9 +38,10 @@ func init() {
 	}
 }
 
-func renderPage(events []*events.Event) ([]byte, error) {
+func renderPage(foundEvents []*events.Event) ([]byte, error) {
+	generatedDateString := time.Now().In(events.SeattleTimeZone).Format("Monday Jan _2, 2006")
 	buf := bytes.NewBuffer(nil)
-	err := pageTemplate.Execute(buf, &templateParams{Events: events})
+	err := pageTemplate.Execute(buf, &templateParams{Events: foundEvents, GeneratedDate: generatedDateString})
 	if err != nil {
 		return nil, fmt.Errorf("renderPage: could not render: %w", err)
 	}

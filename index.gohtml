@@ -6,6 +6,7 @@
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/pico.min.css">
     <link rel="stylesheet" href="/seattle_sports.css">
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
     <title>Is there a Seattle home game today?</title>
 </head>
 <body>
@@ -20,6 +21,9 @@
                 <p>{{ .TeamName }} are playing against the {{ .Opponent }} at {{ .Venue }}. The game starts at {{ .LocalTime }}</p>
             </div>
         {{ end }}
+    </div>
+    <div class="date-footer">
+        Generated on {{ .GeneratedDate }}
     </div>
 </main>
 </body>
