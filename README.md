@@ -17,3 +17,6 @@ Powers https://isthereaseattlehomegametoday.com/ to let the public know if there
 ## Technical Details
 
 tl;dr every day at 3:14 am, an AWS EventBridge event fires which triggers a Lambda function. This function queries a bunch of APIs (mostly ESPN) and figures out if there's a home game for a Seattle team. The HTML for the page is rendered and then uploaded to an S3 bucket. Finally, the CloudFront distribution in front of the bucket has its cache invalidated so we can start serving the new page.
+
+Finally, we integrate with https://ntfy.sh/ so I get a little push notification on my phone every morning to make sure that everything is running. The notification reports how many games were found if everything worked, or an error if things did not.
+
