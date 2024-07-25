@@ -190,7 +190,8 @@ func getCurrentNHLSeason() string {
 }
 
 func GetKrakenGame(ctx context.Context) (*Event, error) {
-	today := time.Now().Format("2006-01-02")
+	today := SeattleCurrentTime.Format("2006-01-02")
+	log.Info().Str("nhl_formatted_date", today).Msg("querying NHL API")
 	url := fmt.Sprintf("https://api-web.nhle.com/v1/club-schedule-season/SEA/%s", getCurrentNHLSeason())
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)

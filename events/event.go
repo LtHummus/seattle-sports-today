@@ -9,7 +9,10 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-var SeattleTimeZone *time.Location
+var (
+	SeattleTimeZone    *time.Location
+	SeattleCurrentTime time.Time
+)
 
 const (
 	localTimeDateFormat = "3:04 PM"
@@ -22,6 +25,9 @@ func init() {
 	}
 
 	SeattleTimeZone = stz
+	SeattleCurrentTime = time.Now().In(SeattleTimeZone)
+
+	log.Info().Str("current_seattle_time", SeattleCurrentTime.Format(time.RFC850)).Str("seattle_time_zone", SeattleTimeZone.String()).Msg("initialized time")
 }
 
 type Event struct {

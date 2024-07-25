@@ -39,7 +39,8 @@ func init() {
 }
 
 func renderPage(foundEvents []*events.Event) ([]byte, error) {
-	generatedDateString := time.Now().In(events.SeattleTimeZone).Format("Monday Jan _2, 2006")
+	generatedDateString := events.SeattleCurrentTime.Format("Monday Jan _2, 2006")
+	log.Info().Int("num_events", len(foundEvents)).Str("formatted_date", generatedDateString).Msg("rendering page")
 	buf := bytes.NewBuffer(nil)
 	err := pageTemplate.Execute(buf, &templateParams{Events: foundEvents, GeneratedDate: generatedDateString})
 	if err != nil {

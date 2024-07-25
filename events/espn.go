@@ -78,8 +78,7 @@ type espnResponse struct {
 }
 
 func queryESPN(ctx context.Context, url string, seattleTeam string, abbreviation string) (*Event, error) {
-	today := time.Now().In(SeattleTimeZone)
-
+	log.Info().Str("url", url).Str("team", seattleTeam).Msg("querying ESPN API")
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		log.Error().Err(err).Str("seattle_team", seattleTeam).Msg("could not build request")
@@ -127,7 +126,7 @@ func queryESPN(ctx context.Context, url string, seattleTeam string, abbreviation
 			}
 
 			seattleStart := gameTime.In(SeattleTimeZone)
-			if today.Year() != seattleStart.Year() || today.YearDay() != seattleStart.YearDay() {
+			if SeattleCurrentTime.Year() != seattleStart.Year() || SeattleCurrentTime.YearDay() != seattleStart.YearDay() {
 				continue
 			}
 
