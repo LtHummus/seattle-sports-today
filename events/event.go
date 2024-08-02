@@ -2,12 +2,15 @@ package events
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"golang.org/x/sync/errgroup"
 
 	"github.com/rs/zerolog/log"
 )
+
+type eventFetcher func(ctx context.Context) (*Event, error)
 
 var (
 	SeattleTimeZone    *time.Location
@@ -37,85 +40,38 @@ type Event struct {
 	Opponent  string `json:"opponent"`
 }
 
+func fetchAndAdd(ctx context.Context, f eventFetcher, eventList []*Event, lock *sync.Mutex) func() error {
+	return func() error {
+		event, err := f(ctx)
+		if err != nil {
+			return err
+		}
+		lock.Lock()
+		defer lock.Unlock()
+
+		eventList = append(eventList, event)
+		return nil
+	}
+}
+
 func GetTodaysGames(ctx context.Context) ([]*Event, error) {
 
 	eg, ctx2 := errgroup.WithContext(ctx)
-	var soundersGame *Event
-	var marinersGame *Event
-	var krakenGame *Event
-	var seahawksGame *Event
-	var stormGame *Event
-	var reignGame *Event
-	var huskiesFootball *Event
 
-	eg.Go(func() error {
-		var e error
-		soundersGame, e = GetSoundersGame(ctx2)
-		return e
-	})
+	var events []*Event
+	eventLock := &sync.Mutex{}
 
-	eg.Go(func() error {
-		var e error
-		marinersGame, e = GetMarinersGame(ctx2)
-		return e
-	})
-
-	eg.Go(func() error {
-		var e error
-		krakenGame, e = GetKrakenGame(ctx2)
-		return e
-	})
-
-	eg.Go(func() error {
-		var e error
-		seahawksGame, e = GetSeahawksGame(ctx2)
-		return e
-	})
-
-	eg.Go(func() error {
-		var e error
-		stormGame, e = GetStormGame(ctx2)
-		return e
-	})
-
-	eg.Go(func() error {
-		var e error
-		reignGame, e = GetReignGame(ctx2)
-		return e
-	})
-
-	eg.Go(func() error {
-		var e error
-		huskiesFootball, e = GetHuskiesFootballGame(ctx2)
-		return e
-	})
+	eg.Go(fetchAndAdd(ctx2, GetSoundersGame, events, eventLock))
+	eg.Go(fetchAndAdd(ctx2, GetMarinersGame, events, eventLock))
+	eg.Go(fetchAndAdd(ctx2, GetSeahawksGame, events, eventLock))
+	eg.Go(fetchAndAdd(ctx2, GetStormGame, events, eventLock))
+	eg.Go(fetchAndAdd(ctx2, GetReignGame, events, eventLock))
+	eg.Go(fetchAndAdd(ctx2, GetHuskiesFootballGame, events, eventLock))
+	eg.Go(fetchAndAdd(ctx2, GetSoundersLeagueCupGame, events, eventLock))
 
 	err := eg.Wait()
 	if err != nil {
 		return nil, err
-	}
-
-	var events []*Event
-	if soundersGame != nil {
-		events = append(events, soundersGame)
-	}
-	if marinersGame != nil {
-		events = append(events, marinersGame)
-	}
-	if krakenGame != nil {
-		events = append(events, krakenGame)
-	}
-	if seahawksGame != nil {
-		events = append(events, seahawksGame)
-	}
-	if stormGame != nil {
-		events = append(events, stormGame)
-	}
-	if reignGame != nil {
-		events = append(events, reignGame)
-	}
-	if huskiesFootball != nil {
-		events = append(events, huskiesFootball)
 	}
 
 	return events, nil

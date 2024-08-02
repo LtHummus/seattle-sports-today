@@ -51,13 +51,19 @@ func renderPage(foundEvents []*events.Event) ([]byte, error) {
 }
 
 func eventHandler(ctx context.Context) error {
+	defer func() {
+		if err := recover(); err != nil {
+			_ = notifier.Notify(context.Background(), fmt.Sprintf("ERROR: uncaught panic: %v", err), notifier.PriorityHigh, notifier.EmojiSiren)
+		}
+	}()
+
 	log.Info().Msg("getting today's games")
 	events, err := events.GetTodaysGames(ctx)
 	if err != nil {
 		_ = notifier.Notify(ctx, fmt.Sprintf("ERROR: could not get today's games: %s", err.Error()), notifier.PriorityHigh, notifier.EmojiSiren)
 		return err
 	}
-
+	
 	log.Info().Int("games_found", len(events)).Msg("found games")
 
 	log.Info().Msg("rendering page")
