@@ -40,7 +40,7 @@ type Event struct {
 	Opponent  string `json:"opponent"`
 }
 
-func fetchAndAdd(ctx context.Context, f eventFetcher, eventList []*Event, lock *sync.Mutex) func() error {
+func fetchAndAdd(ctx context.Context, f eventFetcher, eventList *[]*Event, lock *sync.Mutex) func() error {
 	return func() error {
 		event, err := f(ctx)
 		if err != nil {
@@ -49,7 +49,10 @@ func fetchAndAdd(ctx context.Context, f eventFetcher, eventList []*Event, lock *
 		lock.Lock()
 		defer lock.Unlock()
 
-		eventList = append(eventList, event)
+		if event == nil {
+			return nil
+		}
+		*eventList = append(*eventList, event)
 		return nil
 	}
 }
@@ -58,16 +61,17 @@ func GetTodaysGames(ctx context.Context) ([]*Event, error) {
 
 	eg, ctx2 := errgroup.WithContext(ctx)
 
-	var events []*Event
+	events := make([]*Event, 0)
 	eventLock := &sync.Mutex{}
 
-	eg.Go(fetchAndAdd(ctx2, GetSoundersGame, events, eventLock))
-	eg.Go(fetchAndAdd(ctx2, GetMarinersGame, events, eventLock))
-	eg.Go(fetchAndAdd(ctx2, GetSeahawksGame, events, eventLock))
-	eg.Go(fetchAndAdd(ctx2, GetStormGame, events, eventLock))
-	eg.Go(fetchAndAdd(ctx2, GetReignGame, events, eventLock))
-	eg.Go(fetchAndAdd(ctx2, GetHuskiesFootballGame, events, eventLock))
-	eg.Go(fetchAndAdd(ctx2, GetSoundersLeagueCupGame, events, eventLock))
+	eg.Go(fetchAndAdd(ctx2, GetSoundersGame, &events, eventLock))
+	eg.Go(fetchAndAdd(ctx2, GetKrakenGame, &events, eventLock))
+	eg.Go(fetchAndAdd(ctx2, GetMarinersGame, &events, eventLock))
+	eg.Go(fetchAndAdd(ctx2, GetSeahawksGame, &events, eventLock))
+	eg.Go(fetchAndAdd(ctx2, GetStormGame, &events, eventLock))
+	eg.Go(fetchAndAdd(ctx2, GetReignGame, &events, eventLock))
+	eg.Go(fetchAndAdd(ctx2, GetHuskiesFootballGame, &events, eventLock))
+	eg.Go(fetchAndAdd(ctx2, GetSoundersLeagueCupGame, &events, eventLock))
 
 	err := eg.Wait()
 	if err != nil {
