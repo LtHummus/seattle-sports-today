@@ -199,7 +199,7 @@ func GetKrakenGame(ctx context.Context) (*Event, error) {
 		return nil, err
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("events: GetKrakenGame: could not retireve NHL API data: %w", err)
 	}

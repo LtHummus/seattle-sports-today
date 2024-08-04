@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
+	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/rs/zerolog/log"
 )
 
@@ -34,6 +35,8 @@ const (
 	EmojiSiren Emoji = "rotating_light"
 	EmojiParty Emoji = "partying_face"
 )
+
+var httpClient = xray.Client(http.DefaultClient)
 
 func Notify(ctx context.Context, text string, priority Priority, emoji Emoji) error {
 	cfg, err := config.LoadDefaultConfig(ctx)
@@ -70,7 +73,7 @@ func Notify(ctx context.Context, text string, priority Priority, emoji Emoji) er
 		req.Header.Set("Tags", string(emoji))
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		log.Error().Err(err).Msg("could not make ntfy request")
 		return fmt.Errorf("notifier: Notify: could not make request: %w", err)

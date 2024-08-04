@@ -85,7 +85,7 @@ func queryESPN(ctx context.Context, url string, seattleTeam string, abbreviation
 		return nil, fmt.Errorf("events: queryESPN: could not build request: %w", err)
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		log.Error().Err(err).Str("seattle_team", seattleTeam).Msg("could not make ESPN API request")
 		return nil, fmt.Errorf("events: queryESPN: could not make ESPN API request: %w", err)

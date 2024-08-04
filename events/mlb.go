@@ -114,7 +114,7 @@ func GetMarinersGame(ctx context.Context) (*Event, error) {
 		return nil, fmt.Errorf("events: GetMarinersGame: could not build request: %w", err)
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("events: GetMarinersGame: could not get data from MLB API: %w", err)
 	}

@@ -2,9 +2,12 @@ package events
 
 import (
 	"context"
+	"fmt"
+	"net/http"
 	"sync"
 	"time"
 
+	"github.com/aws/aws-xray-sdk-go/xray"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/rs/zerolog/log"
@@ -15,6 +18,8 @@ type eventFetcher func(ctx context.Context) (*Event, error)
 var (
 	SeattleTimeZone    *time.Location
 	SeattleCurrentTime time.Time
+
+	httpClient = xray.Client(http.DefaultClient)
 )
 
 const (
@@ -40,20 +45,22 @@ type Event struct {
 	Opponent  string `json:"opponent"`
 }
 
-func fetchAndAdd(ctx context.Context, f eventFetcher, eventList *[]*Event, lock *sync.Mutex) func() error {
+func fetchAndAdd(ctx context.Context, teamName string, f eventFetcher, eventList *[]*Event, lock *sync.Mutex) func() error {
 	return func() error {
-		event, err := f(ctx)
-		if err != nil {
-			return err
-		}
-		lock.Lock()
-		defer lock.Unlock()
+		return xray.Capture(ctx, fmt.Sprintf("Fetch.%s", teamName), func(ctx2 context.Context) error {
+			event, err := f(ctx2)
+			if err != nil {
+				return err
+			}
+			lock.Lock()
+			defer lock.Unlock()
 
-		if event == nil {
+			if event == nil {
+				return nil
+			}
+			*eventList = append(*eventList, event)
 			return nil
-		}
-		*eventList = append(*eventList, event)
-		return nil
+		})
 	}
 }
 
@@ -64,14 +71,14 @@ func GetTodaysGames(ctx context.Context) ([]*Event, error) {
 	events := make([]*Event, 0)
 	eventLock := &sync.Mutex{}
 
-	eg.Go(fetchAndAdd(ctx2, GetSoundersGame, &events, eventLock))
-	eg.Go(fetchAndAdd(ctx2, GetKrakenGame, &events, eventLock))
-	eg.Go(fetchAndAdd(ctx2, GetMarinersGame, &events, eventLock))
-	eg.Go(fetchAndAdd(ctx2, GetSeahawksGame, &events, eventLock))
-	eg.Go(fetchAndAdd(ctx2, GetStormGame, &events, eventLock))
-	eg.Go(fetchAndAdd(ctx2, GetReignGame, &events, eventLock))
-	eg.Go(fetchAndAdd(ctx2, GetHuskiesFootballGame, &events, eventLock))
-	eg.Go(fetchAndAdd(ctx2, GetSoundersLeagueCupGame, &events, eventLock))
+	eg.Go(fetchAndAdd(ctx2, "Sounders", GetSoundersGame, &events, eventLock))
+	eg.Go(fetchAndAdd(ctx2, "Kraken", GetKrakenGame, &events, eventLock))
+	eg.Go(fetchAndAdd(ctx2, "Mariners", GetMarinersGame, &events, eventLock))
+	eg.Go(fetchAndAdd(ctx2, "Seahawks", GetSeahawksGame, &events, eventLock))
+	eg.Go(fetchAndAdd(ctx2, "Storm", GetStormGame, &events, eventLock))
+	eg.Go(fetchAndAdd(ctx2, "Reign", GetReignGame, &events, eventLock))
+	eg.Go(fetchAndAdd(ctx2, "HuskiesFootball", GetHuskiesFootballGame, &events, eventLock))
+	eg.Go(fetchAndAdd(ctx2, "SoundersLeaguesCup", GetSoundersLeagueCupGame, &events, eventLock))
 
 	err := eg.Wait()
 	if err != nil {
