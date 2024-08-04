@@ -7,10 +7,8 @@ import (
 	"fmt"
 	"html/template"
 	"os"
-	"time"
 
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
 	"github.com/lthummus/seattle-sports-today/events"
@@ -29,8 +27,6 @@ type templateParams struct {
 }
 
 func init() {
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339, NoColor: true})
-
 	var err error
 	pageTemplate, err = template.New("").Parse(templateString)
 	if err != nil {
@@ -63,7 +59,7 @@ func eventHandler(ctx context.Context) error {
 		_ = notifier.Notify(ctx, fmt.Sprintf("ERROR: could not get today's games: %s", err.Error()), notifier.PriorityHigh, notifier.EmojiSiren)
 		return err
 	}
-	
+
 	log.Info().Int("games_found", len(events)).Msg("found games")
 
 	log.Info().Msg("rendering page")

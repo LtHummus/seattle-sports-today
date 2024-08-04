@@ -16,7 +16,6 @@ import (
 	"github.com/aws/aws-cdk-go/awscdk/v2/awss3assets"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awss3deployment"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awssecretsmanager"
-
 	"github.com/aws/constructs-go/constructs/v10"
 	"github.com/aws/jsii-runtime-go"
 )
@@ -89,6 +88,9 @@ func NewCdkStack(scope constructs.Construct, id string, props *CdkStackProps) aw
 			"UPLOAD_CF_DISTRIBUTION_ID": distribution.DistributionId(),
 			"NOTIFIER_SECRET_NAME":      jsii.String(notificationSecretName),
 		},
+		LoggingFormat:   awslambda.LoggingFormat_JSON,
+		InsightsVersion: awslambda.LambdaInsightsVersion_VERSION_1_0_98_0(),
+		Tracing:         awslambda.Tracing_ACTIVE,
 	})
 
 	bucket.GrantWrite(updateFunction, nil, nil)
