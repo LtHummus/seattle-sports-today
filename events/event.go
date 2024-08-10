@@ -49,19 +49,19 @@ func fetchAndAdd(ctx context.Context, teamName string, f eventFetcher, eventList
 	return func() error {
 		return xray.Capture(ctx, fmt.Sprintf("Fetch.%s", teamName), func(ctx2 context.Context) error {
 			event, err := f(ctx2)
-			xray.AddAnnotation(ctx2, "teamname", teamName)
+			_ = xray.AddAnnotation(ctx2, "teamname", teamName)
 			if err != nil {
-				xray.AddError(ctx2, err)
+				_ = xray.AddError(ctx2, err)
 				return err
 			}
 			lock.Lock()
 			defer lock.Unlock()
 
 			if event == nil {
-				xray.AddAnnotation(ctx2, "gamefound", false)
+				_ = xray.AddAnnotation(ctx2, "gamefound", false)
 				return nil
 			}
-			xray.AddAnnotation(ctx2, "gamefound", true)
+			_ = xray.AddAnnotation(ctx2, "gamefound", true)
 			*eventList = append(*eventList, event)
 			return nil
 		})
