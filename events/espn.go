@@ -132,7 +132,7 @@ func queryESPN(ctx context.Context, url string, seattleTeam string, abbreviation
 
 			return &Event{
 				TeamName:  seattleTeam,
-				Venue:     curr.Venue.DisplayName,
+				Venue:     competition.Venue.FullName,
 				LocalTime: gameTime.In(SeattleTimeZone).Format(localTimeDateFormat),
 				Opponent:  awayTeam.Team.Name,
 			}, nil
