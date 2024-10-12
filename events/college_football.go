@@ -140,7 +140,7 @@ const (
 	huskiesName = "Washington Huskies"
 )
 
-func GetHuskiesFootballGame(ctx context.Context) (*Event, error) {
+func GetHuskiesFootballGame(ctx context.Context) ([]*Event, error) {
 	log.Info().Msg("querying ESPN API for Huskies")
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, huskiesURL, nil)
 	if err != nil {
@@ -194,11 +194,13 @@ func GetHuskiesFootballGame(ctx context.Context) (*Event, error) {
 		}
 
 		if competition.Venue.FullName == "Husky Stadium" {
-			return &Event{
-				TeamName:  huskiesName,
-				Venue:     competition.Venue.FullName,
-				LocalTime: gameTime.In(SeattleTimeZone).Format(localTimeDateFormat),
-				Opponent:  awayTeam.Team.DisplayName,
+			return []*Event{
+				{
+					TeamName:  huskiesName,
+					Venue:     competition.Venue.FullName,
+					LocalTime: gameTime.In(SeattleTimeZone).Format(localTimeDateFormat),
+					Opponent:  awayTeam.Team.DisplayName,
+				},
 			}, nil
 		}
 	}

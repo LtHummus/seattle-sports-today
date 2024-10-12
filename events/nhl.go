@@ -189,7 +189,7 @@ func getCurrentNHLSeason() string {
 	}
 }
 
-func GetKrakenGame(ctx context.Context) (*Event, error) {
+func GetKrakenGame(ctx context.Context) ([]*Event, error) {
 	today := SeattleCurrentTime.Format("2006-01-02")
 	log.Info().Str("nhl_formatted_date", today).Msg("querying NHL API")
 	url := fmt.Sprintf("https://api-web.nhle.com/v1/club-schedule-season/SEA/%s", getCurrentNHLSeason())
@@ -227,11 +227,13 @@ func GetKrakenGame(ctx context.Context) (*Event, error) {
 
 		startTimeLocal := curr.StartTimeUTC.In(SeattleTimeZone).Format(localTimeDateFormat)
 
-		return &Event{
-			TeamName:  "Seattle Kraken",
-			Venue:     curr.Venue.Default,
-			LocalTime: startTimeLocal,
-			Opponent:  nhlTeamMap[curr.AwayTeam.Abbrev],
+		return []*Event{
+			{
+				TeamName:  "Seattle Kraken",
+				Venue:     curr.Venue.Default,
+				LocalTime: startTimeLocal,
+				Opponent:  nhlTeamMap[curr.AwayTeam.Abbrev],
+			},
 		}, nil
 	}
 

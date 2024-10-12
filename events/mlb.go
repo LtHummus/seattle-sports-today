@@ -106,7 +106,7 @@ type mlbTodayGamesResponse struct {
 	} `json:"dates"`
 }
 
-func GetMarinersGame(ctx context.Context) (*Event, error) {
+func GetMarinersGame(ctx context.Context) ([]*Event, error) {
 	formattedDate := SeattleCurrentTime.Format("01/02/2006")
 	log.Info().Str("mlb_formatted_date", formattedDate).Msg("querying MLB API")
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("https://statsapi.mlb.com/api/v1/schedule/games/?sportId=1&date=%s", formattedDate), nil)
@@ -139,11 +139,13 @@ func GetMarinersGame(ctx context.Context) (*Event, error) {
 		if curr.Teams.Home.Team.Id == marinersTeamID {
 			startTime := curr.GameDate.In(SeattleTimeZone).Format(localTimeDateFormat)
 
-			return &Event{
-				TeamName:  "Seattle Mariners",
-				Venue:     curr.Venue.Name,
-				LocalTime: startTime,
-				Opponent:  curr.Teams.Away.Team.Name,
+			return []*Event{
+				{
+					TeamName:  "Seattle Mariners",
+					Venue:     curr.Venue.Name,
+					LocalTime: startTime,
+					Opponent:  curr.Teams.Away.Team.Name,
+				},
 			}, nil
 		}
 	}

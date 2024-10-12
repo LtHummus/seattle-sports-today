@@ -77,7 +77,7 @@ type espnResponse struct {
 	} `json:"events"`
 }
 
-func queryESPN(ctx context.Context, url string, seattleTeam string, abbreviation string) (*Event, error) {
+func queryESPN(ctx context.Context, url string, seattleTeam string, abbreviation string) ([]*Event, error) {
 	log.Info().Str("url", url).Str("team", seattleTeam).Msg("querying ESPN API")
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -130,11 +130,13 @@ func queryESPN(ctx context.Context, url string, seattleTeam string, abbreviation
 				continue
 			}
 
-			return &Event{
-				TeamName:  seattleTeam,
-				Venue:     competition.Venue.FullName,
-				LocalTime: gameTime.In(SeattleTimeZone).Format(localTimeDateFormat),
-				Opponent:  awayTeam.Team.DisplayName,
+			return []*Event{
+				{
+					TeamName:  seattleTeam,
+					Venue:     competition.Venue.FullName,
+					LocalTime: gameTime.In(SeattleTimeZone).Format(localTimeDateFormat),
+					Opponent:  awayTeam.Team.DisplayName,
+				},
 			}, nil
 		}
 	}
