@@ -80,14 +80,18 @@ func eventHandler(ctx context.Context) error {
 
 	log.Info().Msg("render complete")
 
-	log.Info().Msg("beginning upload")
-	err = uploader.Upload(ctx, page)
-	if err != nil {
-		_ = notifier.Notify(ctx, fmt.Sprintf("ERROR: upload page: %s", err.Error()), notifier.PriorityHigh, notifier.EmojiSiren)
-		return err
-	}
+	if os.Getenv("_HANDLER") != "" || os.Getenv("UPLOAD_ANYWAY") == "true" {
+		log.Info().Msg("beginning upload")
+		err = uploader.Upload(ctx, page)
+		if err != nil {
+			_ = notifier.Notify(ctx, fmt.Sprintf("ERROR: upload page: %s", err.Error()), notifier.PriorityHigh, notifier.EmojiSiren)
+			return err
+		}
 
-	log.Info().Msg("upload complete")
+		log.Info().Msg("upload complete")
+	} else {
+		log.Warn().Msg("detected running locally, not uploading")
+	}
 
 	log.Info().Msg("all in a day's work...")
 

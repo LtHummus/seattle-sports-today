@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-cdk-go/awscdk/v2/awscertificatemanager"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awscloudfront"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awscloudfrontorigins"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awsdynamodb"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsevents"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awseventstargets"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awslambda"
@@ -79,14 +80,29 @@ func NewCdkStack(scope constructs.Construct, id string, props *CdkStackProps) aw
 		Target:     awsroute53.RecordTarget_FromAlias(awsroute53targets.NewCloudFrontTarget(distribution)),
 	})
 
+	specialEventsTable := awsdynamodb.NewTableV2(stack, jsii.String("SpecialEventsTable"), &awsdynamodb.TablePropsV2{
+		TableName: jsii.String("seattle-sports-today-special-events"),
+		PartitionKey: &awsdynamodb.Attribute{
+			Name: jsii.String("date"),
+			Type: awsdynamodb.AttributeType_STRING,
+		},
+		SortKey: &awsdynamodb.Attribute{
+			Name: jsii.String("slug"),
+			Type: awsdynamodb.AttributeType_STRING,
+		},
+		Billing: awsdynamodb.Billing_OnDemand(),
+	})
+
 	updateFunction := awslambda.NewFunction(stack, jsii.String("UpdateFunction"), &awslambda.FunctionProps{
 		Runtime: awslambda.Runtime_PROVIDED_AL2023(),
 		Handler: jsii.String("bootstrap"),
+		Timeout: awscdk.Duration_Seconds(jsii.Number(15)),
 		Code:    awslambda.Code_FromAsset(jsii.String("../bin"), &awss3assets.AssetOptions{}),
 		Environment: &map[string]*string{
 			"UPLOAD_S3_BUCKET_NAME":     bucket.BucketName(),
 			"UPLOAD_CF_DISTRIBUTION_ID": distribution.DistributionId(),
 			"NOTIFIER_SECRET_NAME":      jsii.String(notificationSecretName),
+			"SPECIAL_EVENTS_TABLE_NAME": specialEventsTable.TableName(),
 		},
 		LoggingFormat:   awslambda.LoggingFormat_JSON,
 		InsightsVersion: awslambda.LambdaInsightsVersion_VERSION_1_0_98_0(),
@@ -96,6 +112,7 @@ func NewCdkStack(scope constructs.Construct, id string, props *CdkStackProps) aw
 	bucket.GrantWrite(updateFunction, nil, nil)
 	distribution.GrantCreateInvalidation(updateFunction)
 	notificationSecret.GrantRead(updateFunction, nil)
+	specialEventsTable.GrantReadData(updateFunction)
 
 	eventRule := awsevents.NewRule(stack, jsii.String("UpdateFunctionCron"), &awsevents.RuleProps{
 		Schedule: awsevents.Schedule_Cron(&awsevents.CronOptions{

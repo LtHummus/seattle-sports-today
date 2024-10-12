@@ -13,6 +13,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// TODO(cleanup): make this return a slice of *Event to  handle edge cases where teams play multiple games in one day
+// and also keep common logic for the special events stuff
 type eventFetcher func(ctx context.Context) (*Event, error)
 
 var (
@@ -68,6 +70,32 @@ func fetchAndAdd(ctx context.Context, teamName string, f eventFetcher, eventList
 	}
 }
 
+func fetchAndAddSpecialEvents(ctx context.Context, eventList *[]*Event, lock *sync.Mutex) func() error {
+	return func() error {
+		return xray.Capture(ctx, "Fetch.SpecialEvents", func(ctx2 context.Context) error {
+			events, err := GetSpecialEvents(ctx2)
+			_ = xray.AddAnnotation(ctx2, "teamname", "SpecialEvents")
+			if err != nil {
+				_ = xray.AddError(ctx2, err)
+				return err
+			}
+			lock.Lock()
+			defer lock.Unlock()
+
+			if len(events) == 0 {
+				_ = xray.AddAnnotation(ctx2, "gamefound", false)
+				return nil
+			}
+
+			_ = xray.AddAnnotation(ctx2, "gamefound", true)
+			for _, curr := range events {
+				*eventList = append(*eventList, curr)
+			}
+			return nil
+		})
+	}
+}
+
 func GetTodaysGames(ctx context.Context) ([]*Event, error) {
 
 	eg, ctx2 := errgroup.WithContext(ctx)
@@ -83,6 +111,7 @@ func GetTodaysGames(ctx context.Context) ([]*Event, error) {
 	eg.Go(fetchAndAdd(ctx2, "Reign", GetReignGame, &events, eventLock))
 	eg.Go(fetchAndAdd(ctx2, "HuskiesFootball", GetHuskiesFootballGame, &events, eventLock))
 	eg.Go(fetchAndAdd(ctx2, "SoundersLeaguesCup", GetSoundersLeagueCupGame, &events, eventLock))
+	eg.Go(fetchAndAddSpecialEvents(ctx2, &events, eventLock))
 
 	err := eg.Wait()
 	if err != nil {
