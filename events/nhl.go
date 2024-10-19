@@ -233,6 +233,7 @@ func GetKrakenGame(ctx context.Context) ([]*Event, error) {
 				Venue:     curr.Venue.Default,
 				LocalTime: startTimeLocal,
 				Opponent:  nhlTeamMap[curr.AwayTeam.Abbrev],
+				RawTime:   curr.StartTimeUTC.Unix(),
 			},
 		}, nil
 	}

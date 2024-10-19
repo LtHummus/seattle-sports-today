@@ -43,6 +43,8 @@ type Event struct {
 	Venue     string `json:"venue"`
 	LocalTime string `json:"local_time"`
 	Opponent  string `json:"opponent"`
+
+	RawTime int64 `json:"raw_time"`
 }
 
 func fetchAndAdd(ctx context.Context, teamName string, f eventFetcher, eventList *[]*Event, lock *sync.Mutex) func() error {

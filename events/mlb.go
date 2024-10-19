@@ -145,6 +145,7 @@ func GetMarinersGame(ctx context.Context) ([]*Event, error) {
 					Venue:     curr.Venue.Name,
 					LocalTime: startTime,
 					Opponent:  curr.Teams.Away.Team.Name,
+					RawTime:   curr.GameDate.Unix(),
 				},
 			}, nil
 		}

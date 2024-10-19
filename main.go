@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"html/template"
 	"os"
+	"slices"
 	"time"
 
 	"github.com/aws/aws-lambda-go/lambda"
@@ -63,16 +64,24 @@ func eventHandler(ctx context.Context) error {
 	}()
 
 	log.Info().Msg("getting today's games")
-	events, err := events.GetTodaysGames(ctx)
+	foundEvents, err := events.GetTodaysGames(ctx)
 	if err != nil {
 		_ = notifier.Notify(ctx, fmt.Sprintf("ERROR: could not get today's games: %s", err.Error()), notifier.PriorityHigh, notifier.EmojiSiren)
 		return err
 	}
 
-	log.Info().Int("games_found", len(events)).Msg("found games")
+	log.Info().Int("games_found", len(foundEvents)).Msg("found games")
+
+	slices.SortFunc(foundEvents, func(a, b *events.Event) int {
+		return int(a.RawTime - b.RawTime)
+	})
+
+	for _, curr := range foundEvents {
+		log.Info().Str("team_name", curr.TeamName).Str("venue", curr.Venue).Str("local_time", curr.LocalTime).Str("opponent", curr.Opponent).Int64("raw_time", curr.RawTime).Msg("found event")
+	}
 
 	log.Info().Msg("rendering page")
-	page, err := renderPage(events)
+	page, err := renderPage(foundEvents)
 	if err != nil {
 		_ = notifier.Notify(ctx, fmt.Sprintf("ERROR: could not render page: %s", err.Error()), notifier.PriorityHigh, notifier.EmojiSiren)
 		return err
@@ -95,7 +104,7 @@ func eventHandler(ctx context.Context) error {
 
 	log.Info().Msg("all in a day's work...")
 
-	err = notifier.Notify(ctx, fmt.Sprintf("Everything worked! Found %d game(s)", len(events)), notifier.PriorityDefault, notifier.EmojiParty)
+	err = notifier.Notify(ctx, fmt.Sprintf("Everything worked! Found %d game(s)", len(foundEvents)), notifier.PriorityDefault, notifier.EmojiParty)
 	if err != nil {
 		log.Warn().Err(err).Msg("error sending notification")
 	}

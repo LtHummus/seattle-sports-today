@@ -51,6 +51,7 @@ func GetSpecialEvents(ctx context.Context) ([]*Event, error) {
 		Venue     string `dynamodbav:"venue"`
 		LocalTime string `dynamodbav:"local_time"`
 		Opponent  string `dynamodbav:"opponent"`
+		RawTime   int64  `dynamodbav:"raw_time"`
 	}
 	err = attributevalue.UnmarshalListOfMaps(res.Items, &items)
 	if err != nil {
@@ -64,6 +65,7 @@ func GetSpecialEvents(ctx context.Context) ([]*Event, error) {
 			Venue:     curr.Venue,
 			LocalTime: curr.LocalTime,
 			Opponent:  curr.Opponent,
+			RawTime:   curr.RawTime,
 		}
 	}
 

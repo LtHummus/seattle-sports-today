@@ -94,10 +94,11 @@ func NewCdkStack(scope constructs.Construct, id string, props *CdkStackProps) aw
 	})
 
 	updateFunction := awslambda.NewFunction(stack, jsii.String("UpdateFunction"), &awslambda.FunctionProps{
-		Runtime: awslambda.Runtime_PROVIDED_AL2023(),
-		Handler: jsii.String("bootstrap"),
-		Timeout: awscdk.Duration_Seconds(jsii.Number(15)),
-		Code:    awslambda.Code_FromAsset(jsii.String("../bin"), &awss3assets.AssetOptions{}),
+		Runtime:      awslambda.Runtime_PROVIDED_AL2023(),
+		Architecture: awslambda.Architecture_ARM_64(),
+		Handler:      jsii.String("bootstrap"),
+		Timeout:      awscdk.Duration_Seconds(jsii.Number(15)),
+		Code:         awslambda.Code_FromAsset(jsii.String("../bin"), &awss3assets.AssetOptions{}),
 		Environment: &map[string]*string{
 			"UPLOAD_S3_BUCKET_NAME":     bucket.BucketName(),
 			"UPLOAD_CF_DISTRIBUTION_ID": distribution.DistributionId(),
@@ -105,7 +106,7 @@ func NewCdkStack(scope constructs.Construct, id string, props *CdkStackProps) aw
 			"SPECIAL_EVENTS_TABLE_NAME": specialEventsTable.TableName(),
 		},
 		LoggingFormat:   awslambda.LoggingFormat_JSON,
-		InsightsVersion: awslambda.LambdaInsightsVersion_VERSION_1_0_98_0(),
+		InsightsVersion: awslambda.LambdaInsightsVersion_VERSION_1_0_317_0(),
 		Tracing:         awslambda.Tracing_ACTIVE,
 	})
 
