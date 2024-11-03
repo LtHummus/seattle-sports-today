@@ -11,6 +11,8 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/rs/zerolog/log"
+
+	"github.com/lthummus/seattle-sports-today/notifier"
 )
 
 type eventFetcher func(ctx context.Context) ([]*Event, error)
@@ -50,6 +52,11 @@ type Event struct {
 func fetchAndAdd(ctx context.Context, teamName string, f eventFetcher, eventList *[]*Event, lock *sync.Mutex) func() error {
 	return func() error {
 		return xray.Capture(ctx, fmt.Sprintf("Fetch.%s", teamName), func(ctx2 context.Context) error {
+			defer func() {
+				if err := recover(); err != nil {
+					_ = notifier.Notify(ctx, fmt.Sprintf("event: fetchAndAdd: %s: error fetching: %v", teamName, err), notifier.PriorityHigh, notifier.EmojiSiren)
+				}
+			}()
 			event, err := f(ctx2)
 			_ = xray.AddAnnotation(ctx2, "teamname", teamName)
 			if err != nil {
