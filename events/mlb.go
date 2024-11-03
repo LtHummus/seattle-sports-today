@@ -128,7 +128,7 @@ func GetMarinersGame(ctx context.Context) ([]*Event, error) {
 		}
 		return nil, fmt.Errorf("events: GetMarinersGame: could not retireve MLB schedule: %s", string(body))
 	}
-	
+
 	var payload mlbTodayGamesResponse
 	err = json.NewDecoder(resp.Body).Decode(&payload)
 	if err != nil {
@@ -136,7 +136,7 @@ func GetMarinersGame(ctx context.Context) ([]*Event, error) {
 	}
 
 	// in the offseason, there are no games, there is no payload, stop everything
-	if payload.TotalGames == 0 {
+	if len(payload.Dates) == 0 {
 		return nil, nil
 	}
 
