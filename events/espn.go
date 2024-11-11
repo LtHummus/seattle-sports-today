@@ -28,7 +28,13 @@ type espnResponse struct {
 			Attendance int    `json:"attendance"`
 			TimeValid  bool   `json:"timeValid"`
 			Recent     bool   `json:"recent"`
-			Venue      struct {
+			Status     struct {
+				Type struct {
+					Name        string `json:"name"`
+					Description string `json:"description"`
+				} `json:"type"`
+			} `json:"status"`
+			Venue struct {
 				Id       string `json:"id"`
 				FullName string `json:"fullName"`
 				Address  struct {
@@ -127,6 +133,10 @@ func queryESPN(ctx context.Context, url string, seattleTeam string, abbreviation
 
 			seattleStart := gameTime.In(SeattleTimeZone)
 			if SeattleCurrentTime.Year() != seattleStart.Year() || SeattleCurrentTime.YearDay() != seattleStart.YearDay() {
+				continue
+			}
+
+			if competition.Status.Type.Name == "STATUS_CANCELED" {
 				continue
 			}
 
