@@ -64,7 +64,7 @@ func NewCdkStack(scope constructs.Construct, id string, props *CdkStackProps) aw
 	distribution := awscloudfront.NewDistribution(stack, jsii.String("CloudfrontWebsiteDistribution"), &awscloudfront.DistributionProps{
 		DefaultRootObject: jsii.String("index.html"),
 		DefaultBehavior: &awscloudfront.BehaviorOptions{
-			Origin:               awscloudfrontorigins.NewS3Origin(bucket, &awscloudfrontorigins.S3OriginProps{OriginAccessIdentity: originAccessIdentity}),
+			Origin:               awscloudfrontorigins.S3BucketOrigin_WithOriginAccessIdentity(bucket, &awscloudfrontorigins.S3BucketOriginWithOAIProps{OriginAccessIdentity: originAccessIdentity}),
 			Compress:             jsii.Bool(true),
 			AllowedMethods:       awscloudfront.AllowedMethods_ALLOW_GET_HEAD(),
 			ViewerProtocolPolicy: awscloudfront.ViewerProtocolPolicy_REDIRECT_TO_HTTPS,
@@ -90,7 +90,7 @@ func NewCdkStack(scope constructs.Construct, id string, props *CdkStackProps) aw
 			Name: jsii.String("slug"),
 			Type: awsdynamodb.AttributeType_STRING,
 		},
-		Billing: awsdynamodb.Billing_OnDemand(),
+		Billing: awsdynamodb.Billing_OnDemand(&awsdynamodb.MaxThroughputProps{}),
 	})
 
 	updateFunction := awslambda.NewFunction(stack, jsii.String("UpdateFunction"), &awslambda.FunctionProps{
