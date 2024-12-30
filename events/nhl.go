@@ -177,6 +177,7 @@ var nhlTeamMap = map[string]string{
 	"LAK": "Los Angeles Kings",
 	"NJD": "New Jersey Devils",
 	"TBD": "To be determined",
+	"UTA": "Utah Hockey Club",
 }
 
 func getCurrentNHLSeason() string {
