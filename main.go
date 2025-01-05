@@ -15,6 +15,7 @@ import (
 
 	"github.com/lthummus/seattle-sports-today/events"
 	"github.com/lthummus/seattle-sports-today/notifier"
+	"github.com/lthummus/seattle-sports-today/secrets"
 	"github.com/lthummus/seattle-sports-today/uploader"
 )
 
@@ -100,6 +101,7 @@ func eventHandler(ctx context.Context) error {
 		log.Info().Msg("upload complete")
 	} else {
 		log.Warn().Msg("detected running locally, not uploading")
+		fmt.Printf("%s\n", string(page))
 	}
 
 	log.Info().Msg("all in a day's work...")
@@ -114,6 +116,11 @@ func eventHandler(ctx context.Context) error {
 
 func main() {
 	log.Info().Msg("hello world")
+
+	err := secrets.Init(context.Background())
+	if err != nil {
+		log.Fatal().Err(err).Msg("could not initialize secrets manager client")
+	}
 
 	if os.Getenv("_HANDLER") != "" {
 		lambda.Start(eventHandler)

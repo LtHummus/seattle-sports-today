@@ -8,11 +8,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/rs/zerolog/log"
+
+	"github.com/lthummus/seattle-sports-today/secrets"
 )
 
 const envVarNotificationSecretName = "NOTIFIER_SECRET_NAME"
@@ -39,27 +38,12 @@ const (
 var httpClient = xray.Client(http.DefaultClient)
 
 func Notify(ctx context.Context, text string, priority Priority, emoji Emoji) error {
-	cfg, err := config.LoadDefaultConfig(ctx)
-	if err != nil {
-		log.Error().Err(err).Msg("could not load AWS config")
-		return fmt.Errorf("notifier: Notify: could not load AWS config: %w", err)
-	}
-
-	secretClient := secretsmanager.NewFromConfig(cfg)
 	secretARN := os.Getenv(envVarNotificationSecretName)
 
 	log.Info().Str("secret_arn", secretARN).Msg("loading secret")
 
-	res, err := secretClient.GetSecretValue(ctx, &secretsmanager.GetSecretValueInput{
-		SecretId: aws.String(secretARN),
-	})
-	if err != nil {
-		log.Error().Str("secret_arn", secretARN).Err(err).Msg("could not retrieve secret")
-		return fmt.Errorf("notifier: Notify: could not retrieve secret: %w", err)
-	}
-
-	notifierKey := *res.SecretString
-
+	notifierKey, err := secrets.GetSecretString(ctx, secretARN)
+	
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("https://ntfy.sh/%s", notifierKey), strings.NewReader(text))
 	if err != nil {
 		log.Error().Err(err).Msg("could not build ntfy request")

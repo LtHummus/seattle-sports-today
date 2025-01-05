@@ -18,7 +18,7 @@
     <div class="grid">
         {{ range .Events}}
             <div>
-                <p>{{ .TeamName }} are playing against the {{ .Opponent }} at {{ .Venue }}. The game starts at {{ .LocalTime }}</p>
+                <p>{{ . }}</p>
             </div>
         {{ end }}
     </div>

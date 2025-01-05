@@ -46,7 +46,17 @@ type Event struct {
 	LocalTime string `json:"local_time"`
 	Opponent  string `json:"opponent"`
 
+	RawDescription string
+
 	RawTime int64 `json:"raw_time"`
+}
+
+func (e *Event) String() string {
+	if e.RawDescription != "" {
+		return e.RawDescription
+	}
+
+	return fmt.Sprintf("%s are playing against the %s at %s. The game starts at %s.", e.TeamName, e.Opponent, e.Venue, e.LocalTime)
 }
 
 func fetchAndAdd(ctx context.Context, teamName string, f eventFetcher, eventList *[]*Event, lock *sync.Mutex) func() error {
@@ -91,7 +101,8 @@ func GetTodaysGames(ctx context.Context) ([]*Event, error) {
 	eg.Go(fetchAndAdd(ctx2, "Storm", GetStormGame, &events, eventLock))
 	eg.Go(fetchAndAdd(ctx2, "Reign", GetReignGame, &events, eventLock))
 	eg.Go(fetchAndAdd(ctx2, "HuskiesFootball", GetHuskiesFootballGame, &events, eventLock))
-	eg.Go(fetchAndAdd(ctx2, "not used", GetSpecialEvents, &events, eventLock))
+	eg.Go(fetchAndAdd(ctx2, "SpecialEvents", GetSpecialEvents, &events, eventLock))
+	eg.Go(fetchAndAdd(ctx2, "MusicalEvents", GetMusicalEvents, &events, eventLock))
 
 	err := eg.Wait()
 	if err != nil {

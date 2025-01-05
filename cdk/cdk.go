@@ -24,6 +24,7 @@ import (
 const (
 	domainName             = "isthereaseattlehomegametoday.com"
 	notificationSecretName = "seattle-sports-today/ntfy-secret"
+	ticketmasterSecretName = "seattle-sports-today/ticketmaster-api-key"
 )
 
 type CdkStackProps struct {
@@ -38,6 +39,7 @@ func NewCdkStack(scope constructs.Construct, id string, props *CdkStackProps) aw
 	stack := awscdk.NewStack(scope, &id, &sprops)
 
 	notificationSecret := awssecretsmanager.Secret_FromSecretNameV2(stack, jsii.String("NotificationSecret"), jsii.String(notificationSecretName))
+	ticketmasterSecret := awssecretsmanager.Secret_FromSecretNameV2(stack, jsii.String("TicketmasterSecret"), jsii.String(ticketmasterSecretName))
 
 	bucket := awss3.NewBucket(stack, jsii.String("hosting-bucket"), &awss3.BucketProps{
 		AccessControl: awss3.BucketAccessControl_PRIVATE,
@@ -100,10 +102,11 @@ func NewCdkStack(scope constructs.Construct, id string, props *CdkStackProps) aw
 		Timeout:      awscdk.Duration_Seconds(jsii.Number(15)),
 		Code:         awslambda.Code_FromAsset(jsii.String("../bin"), &awss3assets.AssetOptions{}),
 		Environment: &map[string]*string{
-			"UPLOAD_S3_BUCKET_NAME":     bucket.BucketName(),
-			"UPLOAD_CF_DISTRIBUTION_ID": distribution.DistributionId(),
-			"NOTIFIER_SECRET_NAME":      jsii.String(notificationSecretName),
-			"SPECIAL_EVENTS_TABLE_NAME": specialEventsTable.TableName(),
+			"UPLOAD_S3_BUCKET_NAME":            bucket.BucketName(),
+			"UPLOAD_CF_DISTRIBUTION_ID":        distribution.DistributionId(),
+			"NOTIFIER_SECRET_NAME":             jsii.String(notificationSecretName),
+			"SPECIAL_EVENTS_TABLE_NAME":        specialEventsTable.TableName(),
+			"TICKETMASTER_API_KEY_SECRET_NAME": jsii.String(ticketmasterSecretName),
 		},
 		LoggingFormat:   awslambda.LoggingFormat_JSON,
 		InsightsVersion: awslambda.LambdaInsightsVersion_VERSION_1_0_317_0(),
@@ -113,6 +116,7 @@ func NewCdkStack(scope constructs.Construct, id string, props *CdkStackProps) aw
 	bucket.GrantWrite(updateFunction, nil, nil)
 	distribution.GrantCreateInvalidation(updateFunction)
 	notificationSecret.GrantRead(updateFunction, nil)
+	ticketmasterSecret.GrantRead(updateFunction, nil)
 	specialEventsTable.GrantReadData(updateFunction)
 
 	eventRule := awsevents.NewRule(stack, jsii.String("UpdateFunctionCron"), &awsevents.RuleProps{
