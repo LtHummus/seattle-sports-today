@@ -137,7 +137,7 @@ type huskiesFootballPayload struct {
 
 const (
 	huskiesURL  = "https://site.api.espn.com/apis/site/v2/sports/football/college-football/teams/WASH"
-	huskiesName = "Washington Huskies"
+	huskiesName = "Washington Huskies (Football)"
 )
 
 func GetHuskiesFootballGame(ctx context.Context) ([]*Event, error) {

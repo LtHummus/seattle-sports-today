@@ -4,15 +4,16 @@ Powers https://isthereaseattlehomegametoday.com/ to let the public know if there
 
 ## Teams we look at
 
-| Team                | League     | Venue                |
-|---------------------|------------|----------------------|
-| Seattle Mariners    | MLB        | T-Mobile Park        |
-| Seattle Sounders    | MLS        | Lumen Field          |
-| Seattle Kraken      | NHL        | Climate Pledge Arena |
-| Seattle Seahawks    | NFL        | Lumen Field          |
-| Seattle Storm       | WNBA       | Climate Pledge Arena |
-| Seattle Reign       | NWSL       | Lumen Field          |
-| UW Huskies Football | NCAA Div I | Husky Stadium        |
+| Team                                      | League     | Venue                 |
+|-------------------------------------------|------------|-----------------------|
+| Seattle Mariners                          | MLB        | T-Mobile Park         |
+| Seattle Sounders                          | MLS        | Lumen Field           |
+| Seattle Kraken                            | NHL        | Climate Pledge Arena  |
+| Seattle Seahawks                          | NFL        | Lumen Field           |
+| Seattle Storm                             | WNBA       | Climate Pledge Arena  |
+| Seattle Reign                             | NWSL       | Lumen Field           |
+| UW Huskies Football                       | NCAA Div I | Husky Stadium         |
+| UW Huskies Basketball (Men's and Women's) |            | Alaska Airlines Arena |
 
 ## Music we look at
 
