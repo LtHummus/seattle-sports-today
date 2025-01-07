@@ -353,26 +353,30 @@ func getEventForVenueID(ctx context.Context, apiKey string, venueName string, ve
 		return nil, err
 	}
 
-	if len(payload.Embedded.Events) == 0 {
-		return nil, nil
-	}
-
-	e := payload.Embedded.Events[0]
-
-	for _, curr := range e.Embedded.Attractions {
-		if seattleTeamsMap[curr.Id] {
-			// this involves a seattle team, so ignore it
-			log.Info().Str("venue", venueName).Str("event_name", e.Name).Str("attraction_id", curr.Id).Msg("ignoring since it's a seattle team")
-			return nil, nil
+	// TODO: make this return multiple events if needed
+	for _, e := range payload.Embedded.Events {
+		if e.Classifications == nil || len(e.Classifications) == 0 {
+			log.Info().Str("venue", venueName).Str("event_name", e.Name).Msg("ignoring since no classifications")
 		}
+
+		for _, curr := range e.Embedded.Attractions {
+			if seattleTeamsMap[curr.Id] {
+				// this involves a seattle team, so ignore it
+				log.Info().Str("venue", venueName).Str("event_name", e.Name).Str("attraction_id", curr.Id).Msg("ignoring since it's a seattle team")
+				continue
+			}
+		}
+
+		startTime := e.Dates.Start.DateTime.In(SeattleTimeZone)
+
+		return &Event{
+			RawDescription: fmt.Sprintf("%s is at %s. It starts at %s", e.Name, venueName, startTime.Format(localTimeDateFormat)),
+			RawTime:        e.Dates.Start.DateTime.Unix(),
+		}, nil
 	}
 
-	startTime := e.Dates.Start.DateTime.In(SeattleTimeZone)
+	return nil, nil
 
-	return &Event{
-		RawDescription: fmt.Sprintf("%s is at %s. It starts at %s", e.Name, venueName, startTime.Format(localTimeDateFormat)),
-		RawTime:        e.Dates.Start.DateTime.Unix(),
-	}, nil
 }
 
 func GetOtherEvents(ctx context.Context) ([]*Event, error) {
