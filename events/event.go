@@ -104,7 +104,7 @@ func GetTodaysGames(ctx context.Context) ([]*Event, error) {
 	eg.Go(fetchAndAdd(ctx2, "HuskiesMensBasketball", GetHuskiesBasketballMensGame, &events, eventLock))
 	eg.Go(fetchAndAdd(ctx2, "HuskiesWomensBasketball", GetHuskiesBasketballWomensGame, &events, eventLock))
 	eg.Go(fetchAndAdd(ctx2, "SpecialEvents", GetSpecialEvents, &events, eventLock))
-	eg.Go(fetchAndAdd(ctx2, "MusicalEvents", GetMusicalEvents, &events, eventLock))
+	eg.Go(fetchAndAdd(ctx2, "MusicalEvents", GetOtherEvents, &events, eventLock))
 
 	err := eg.Wait()
 	if err != nil {

@@ -14,16 +14,36 @@ import (
 	"github.com/lthummus/seattle-sports-today/secrets"
 )
 
-type TicketmasterAPIResponse struct {
+type TicketmasterEventSearchResponse struct {
 	Embedded struct {
 		Events []struct {
 			Name   string `json:"name"`
 			Type   string `json:"type"`
 			Id     string `json:"id"`
 			Test   bool   `json:"test"`
-			Url    string `json:"url"`
+			Url    string `json:"url,omitempty"`
 			Locale string `json:"locale"`
-			Dates  struct {
+			Images []struct {
+				Ratio    string `json:"ratio"`
+				Url      string `json:"url"`
+				Width    int    `json:"width"`
+				Height   int    `json:"height"`
+				Fallback bool   `json:"fallback"`
+			} `json:"images"`
+			Sales struct {
+				Public struct {
+					StartDateTime time.Time `json:"startDateTime"`
+					StartTBD      bool      `json:"startTBD"`
+					StartTBA      bool      `json:"startTBA"`
+					EndDateTime   time.Time `json:"endDateTime"`
+				} `json:"public"`
+				Presales []struct {
+					StartDateTime time.Time `json:"startDateTime"`
+					EndDateTime   time.Time `json:"endDateTime"`
+					Name          string    `json:"name"`
+				} `json:"presales"`
+			} `json:"sales,omitempty"`
+			Dates struct {
 				Start struct {
 					LocalDate      string    `json:"localDate"`
 					LocalTime      string    `json:"localTime"`
@@ -38,11 +58,13 @@ type TicketmasterAPIResponse struct {
 					Code string `json:"code"`
 				} `json:"status"`
 				SpanMultipleDays bool `json:"spanMultipleDays"`
-				InitialStartDate struct {
-					LocalDate string    `json:"localDate"`
-					LocalTime string    `json:"localTime"`
-					DateTime  time.Time `json:"dateTime"`
-				} `json:"initialStartDate,omitempty"`
+				End              struct {
+					LocalDate      string    `json:"localDate"`
+					LocalTime      string    `json:"localTime"`
+					DateTime       time.Time `json:"dateTime"`
+					Approximate    bool      `json:"approximate"`
+					NoSpecificTime bool      `json:"noSpecificTime"`
+				} `json:"end,omitempty"`
 			} `json:"dates"`
 			Classifications []struct {
 				Primary bool `json:"primary"`
@@ -67,7 +89,7 @@ type TicketmasterAPIResponse struct {
 					Name string `json:"name"`
 				} `json:"subType"`
 				Family bool `json:"family"`
-			} `json:"classifications"`
+			} `json:"classifications,omitempty"`
 			Promoter struct {
 				Id          string `json:"id"`
 				Name        string `json:"name"`
@@ -78,35 +100,213 @@ type TicketmasterAPIResponse struct {
 				Name        string `json:"name"`
 				Description string `json:"description"`
 			} `json:"promoters,omitempty"`
-			Info       string `json:"info,omitempty"`
-			DoorsTimes struct {
-				LocalDate string    `json:"localDate"`
-				LocalTime string    `json:"localTime"`
-				DateTime  time.Time `json:"dateTime"`
-				Id        string    `json:"id"`
-			} `json:"doorsTimes,omitempty"`
+			Info        string `json:"info,omitempty"`
+			PleaseNote  string `json:"pleaseNote,omitempty"`
+			PriceRanges []struct {
+				Type     string  `json:"type"`
+				Currency string  `json:"currency"`
+				Min      float64 `json:"min"`
+				Max      float64 `json:"max"`
+			} `json:"priceRanges,omitempty"`
+			Seatmap struct {
+				StaticUrl string `json:"staticUrl"`
+				Id        string `json:"id"`
+			} `json:"seatmap,omitempty"`
+			Accessibility struct {
+				TicketLimit int    `json:"ticketLimit"`
+				Id          string `json:"id"`
+			} `json:"accessibility,omitempty"`
+			TicketLimit struct {
+				Info string `json:"info"`
+				Id   string `json:"id"`
+			} `json:"ticketLimit,omitempty"`
+			AgeRestrictions struct {
+				LegalAgeEnforced bool   `json:"legalAgeEnforced"`
+				Id               string `json:"id"`
+			} `json:"ageRestrictions,omitempty"`
+			Ticketing struct {
+				SafeTix struct {
+					Enabled          bool `json:"enabled"`
+					InAppOnlyEnabled bool `json:"inAppOnlyEnabled,omitempty"`
+				} `json:"safeTix"`
+				AllInclusivePricing struct {
+					Enabled bool `json:"enabled"`
+				} `json:"allInclusivePricing,omitempty"`
+				Id string `json:"id"`
+			} `json:"ticketing"`
+			Links struct {
+				Self struct {
+					Href string `json:"href"`
+				} `json:"self"`
+				Attractions []struct {
+					Href string `json:"href"`
+				} `json:"attractions,omitempty"`
+				Venues []struct {
+					Href string `json:"href"`
+				} `json:"venues"`
+			} `json:"_links"`
+			Embedded struct {
+				Venues []struct {
+					Name       string `json:"name"`
+					Type       string `json:"type"`
+					Id         string `json:"id"`
+					Test       bool   `json:"test"`
+					Url        string `json:"url,omitempty"`
+					Locale     string `json:"locale"`
+					PostalCode string `json:"postalCode"`
+					Timezone   string `json:"timezone"`
+					City       struct {
+						Name string `json:"name"`
+					} `json:"city"`
+					State struct {
+						Name      string `json:"name"`
+						StateCode string `json:"stateCode"`
+					} `json:"state"`
+					Country struct {
+						Name        string `json:"name"`
+						CountryCode string `json:"countryCode"`
+					} `json:"country"`
+					Address struct {
+						Line1 string `json:"line1"`
+					} `json:"address"`
+					Location struct {
+						Longitude string `json:"longitude"`
+						Latitude  string `json:"latitude"`
+					} `json:"location"`
+					Markets []struct {
+						Name string `json:"name"`
+						Id   string `json:"id"`
+					} `json:"markets,omitempty"`
+					Dmas []struct {
+						Id int `json:"id"`
+					} `json:"dmas,omitempty"`
+					BoxOfficeInfo struct {
+						PhoneNumberDetail     string `json:"phoneNumberDetail"`
+						OpenHoursDetail       string `json:"openHoursDetail"`
+						AcceptedPaymentDetail string `json:"acceptedPaymentDetail"`
+						WillCallDetail        string `json:"willCallDetail"`
+					} `json:"boxOfficeInfo,omitempty"`
+					ParkingDetail string `json:"parkingDetail,omitempty"`
+					GeneralInfo   struct {
+						GeneralRule string `json:"generalRule"`
+						ChildRule   string `json:"childRule"`
+					} `json:"generalInfo,omitempty"`
+					UpcomingEvents struct {
+						Archtics     int `json:"archtics"`
+						Tmr          int `json:"tmr,omitempty"`
+						Ticketmaster int `json:"ticketmaster"`
+						Total        int `json:"_total"`
+						Filtered     int `json:"_filtered"`
+					} `json:"upcomingEvents"`
+					Ada struct {
+						AdaPhones     string `json:"adaPhones"`
+						AdaCustomCopy string `json:"adaCustomCopy"`
+						AdaHours      string `json:"adaHours"`
+					} `json:"ada,omitempty"`
+					Links struct {
+						Self struct {
+							Href string `json:"href"`
+						} `json:"self"`
+					} `json:"_links"`
+				} `json:"venues"`
+				Attractions []struct {
+					Name          string `json:"name"`
+					Type          string `json:"type"`
+					Id            string `json:"id"`
+					Test          bool   `json:"test"`
+					Url           string `json:"url"`
+					Locale        string `json:"locale"`
+					ExternalLinks struct {
+						Twitter []struct {
+							Url string `json:"url"`
+						} `json:"twitter"`
+						Facebook []struct {
+							Url string `json:"url"`
+						} `json:"facebook"`
+						Wiki []struct {
+							Url string `json:"url"`
+						} `json:"wiki"`
+						Instagram []struct {
+							Url string `json:"url"`
+						} `json:"instagram"`
+						Homepage []struct {
+							Url string `json:"url"`
+						} `json:"homepage"`
+					} `json:"externalLinks"`
+					Aliases []string `json:"aliases,omitempty"`
+					Images  []struct {
+						Ratio       string `json:"ratio"`
+						Url         string `json:"url"`
+						Width       int    `json:"width"`
+						Height      int    `json:"height"`
+						Fallback    bool   `json:"fallback"`
+						Attribution string `json:"attribution,omitempty"`
+					} `json:"images"`
+					Classifications []struct {
+						Primary bool `json:"primary"`
+						Segment struct {
+							Id   string `json:"id"`
+							Name string `json:"name"`
+						} `json:"segment"`
+						Genre struct {
+							Id   string `json:"id"`
+							Name string `json:"name"`
+						} `json:"genre"`
+						SubGenre struct {
+							Id   string `json:"id"`
+							Name string `json:"name"`
+						} `json:"subGenre"`
+						Type struct {
+							Id   string `json:"id"`
+							Name string `json:"name"`
+						} `json:"type"`
+						SubType struct {
+							Id   string `json:"id"`
+							Name string `json:"name"`
+						} `json:"subType"`
+						Family bool `json:"family"`
+					} `json:"classifications"`
+					UpcomingEvents struct {
+						Tmr          int `json:"tmr"`
+						Ticketmaster int `json:"ticketmaster"`
+						Total        int `json:"_total"`
+						Filtered     int `json:"_filtered"`
+					} `json:"upcomingEvents"`
+					Links struct {
+						Self struct {
+							Href string `json:"href"`
+						} `json:"self"`
+					} `json:"_links"`
+				} `json:"attractions,omitempty"`
+			} `json:"_embedded"`
 		} `json:"events"`
 	} `json:"_embedded"`
 }
 
 const (
-	VenueIDClimatePledgeArena = "KovZ917Ahkk"
-	VenueIDLumenField         = "KovZpZAEknnA"
-	VenueIDTMobilePark        = "KovZpZAEevAA"
-	VenueIDWAMUTheater        = "KovZpZAFFE7A"
-
-	SegmentIDMusic  = "KZFzniwnSyZfZ7v7nJ"
-	SegmentIDSports = "KZFzniwnSyZfZ7v7nE"
+	AttractionIDKraken   = "K8vZ917_vgV"
+	AttractionIDSeahawks = "K8vZ9171oU7"
+	AttractionIDMariners = "K8vZ9171o6f"
 
 	TicketmasterEventSearchAPI   = "https://app.ticketmaster.com/discovery/v2/events"
 	TicketmasterApiKeySecretName = "TICKETMASTER_API_KEY_SECRET_NAME"
 )
 
+// seattleVenueMap is a map of venues to ticketmaster's internal venue ID for venues we should look at
 var seattleVenueMap = map[string]string{
-	"Climate Pledge Arena": VenueIDClimatePledgeArena,
-	"Lumen Field":          VenueIDLumenField,
-	"T-Mobile Park":        VenueIDTMobilePark,
-	"WAMU Theater":         VenueIDWAMUTheater,
+	"Climate Pledge Arena": "KovZ917Ahkk",
+	"Lumen Field":          "KovZpZAEknnA",
+	"T-Mobile Park":        "KovZpZAEevAA",
+	"WAMU Theater":         "KovZpZAFFE7A",
+}
+
+// seattleTeamsMap is a set of attraction IDs (read: sports teams) that we want to ignore for this so we don't
+// count these events twice (since we check for them in other places). Note for later ... should we just do _everything_
+// via the tikcetmaster API? probably
+var seattleTeamsMap = map[string]bool{
+	AttractionIDKraken:   true,
+	AttractionIDSeahawks: true,
+	AttractionIDMariners: true,
 }
 
 func beginningOfDay(t time.Time) time.Time {
@@ -129,7 +329,6 @@ func getEventForVenueID(ctx context.Context, apiKey string, venueName string, ve
 	q.Add("apikey", apiKey)
 	q.Add("startDateTime", searchStart)
 	q.Add("endDateTime", searchEnd)
-	q.Add("segmentId", SegmentIDMusic)
 	req.URL.RawQuery = q.Encode()
 
 	resp, err := httpClient.Do(req)
@@ -148,7 +347,7 @@ func getEventForVenueID(ctx context.Context, apiKey string, venueName string, ve
 		return nil, fmt.Errorf("events: getEventForVenueID: could not retireve data from ticketmaster: %s", string(body))
 	}
 
-	var payload TicketmasterAPIResponse
+	var payload TicketmasterEventSearchResponse
 	err = json.NewDecoder(resp.Body).Decode(&payload)
 	if err != nil {
 		return nil, err
@@ -160,17 +359,23 @@ func getEventForVenueID(ctx context.Context, apiKey string, venueName string, ve
 
 	e := payload.Embedded.Events[0]
 
+	for _, curr := range e.Embedded.Attractions {
+		if seattleTeamsMap[curr.Id] {
+			// this involves a seattle team, so ignore it
+			log.Info().Str("venue", venueName).Str("event_name", e.Name).Str("attraction_id", curr.Id).Msg("ignoring since it's a seattle team")
+			return nil, nil
+		}
+	}
+
 	startTime := e.Dates.Start.DateTime.In(SeattleTimeZone)
 
 	return &Event{
-		RawDescription: fmt.Sprintf("%s is performing at %s. The show starts at %s", e.Name, venueName, startTime.Format(localTimeDateFormat)),
+		RawDescription: fmt.Sprintf("%s is at %s. It starts at %s", e.Name, venueName, startTime.Format(localTimeDateFormat)),
 		RawTime:        e.Dates.Start.DateTime.Unix(),
 	}, nil
 }
 
-// GetMusicalEvents only finds musical events. This should probably be expanded to non-music events that happen at these
-// places, but that's TODO later.
-func GetMusicalEvents(ctx context.Context) ([]*Event, error) {
+func GetOtherEvents(ctx context.Context) ([]*Event, error) {
 	ticketmasterApiKeySecretName := os.Getenv(TicketmasterApiKeySecretName)
 	if ticketmasterApiKeySecretName == "" {
 		log.Warn().Str("env_var_name", TicketmasterApiKeySecretName).Msg("environment variable not set. Not querying ticketmaster")
@@ -179,7 +384,7 @@ func GetMusicalEvents(ctx context.Context) ([]*Event, error) {
 
 	apiKey, err := secrets.GetSecretString(ctx, ticketmasterApiKeySecretName)
 	if err != nil {
-		return nil, fmt.Errorf("events: GetMusicalEvents: could not get ticketmaster secret: %w", err)
+		return nil, fmt.Errorf("events: GetOtherEvents: could not get ticketmaster secret: %w", err)
 	}
 
 	today := time.Now().In(SeattleTimeZone)
@@ -193,7 +398,7 @@ func GetMusicalEvents(ctx context.Context) ([]*Event, error) {
 		var e *Event
 		e, err = getEventForVenueID(ctx, apiKey, venueName, venueID, start, end)
 		if err != nil {
-			return nil, fmt.Errorf("events: GetMusicalEvents: could not query for ticketmaster data: %w", err)
+			return nil, fmt.Errorf("events: GetOtherEvents: could not query for ticketmaster data: %w", err)
 		}
 		if e != nil {
 			res = append(res, e)
