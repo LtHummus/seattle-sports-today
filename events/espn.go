@@ -145,6 +145,8 @@ type espnTeamResponse struct {
 	} `json:"team"`
 }
 
+// TODO: the next two functions can be DRY'd out a bit
+
 func queryESPNTeam(ctx context.Context, url string, seattleTeam string, expectedVenue string) ([]*Event, error) {
 	log.Info().Str("seattle_team", seattleTeam).Msg("querying for espn team info")
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -210,6 +212,7 @@ func queryESPNTeam(ctx context.Context, url string, seattleTeam string, expected
 					Venue:     competition.Venue.FullName,
 					LocalTime: gameTime.In(SeattleTimeZone).Format(localTimeDateFormat),
 					Opponent:  awayTeam.Team.DisplayName,
+					RawTime:   gameTime.Unix(),
 				},
 			}, nil
 		}
