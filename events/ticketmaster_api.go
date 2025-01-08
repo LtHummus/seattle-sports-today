@@ -367,6 +367,11 @@ func getEventForVenueID(ctx context.Context, apiKey string, venueName string, ve
 		return nil, fmt.Errorf("events: getEventForVenueID: could not retireve data from ticketmaster: %s", string(body))
 	}
 
+	remainingRequestCount := resp.Header.Get("Rate-Limit-Available")
+	rateLimitResetTime := resp.Header.Get("Rate-Limit-Reset")
+
+	log.Info().Str("venue_name", venueName).Str("remaining_requests", remainingRequestCount).Str("rate_limit_reset_time", rateLimitResetTime).Msg("completed ticketmaster API request")
+
 	var payload TicketmasterEventSearchResponse
 	err = json.NewDecoder(resp.Body).Decode(&payload)
 	if err != nil {
@@ -382,6 +387,8 @@ func getEventForVenueID(ctx context.Context, apiKey string, venueName string, ve
 		}
 
 		startTime := e.Dates.Start.DateTime.In(SeattleTimeZone)
+
+		log.Info().Str("venue_name", venueName).Str("event_name", e.Name).Msg("found event from ticketmaster")
 
 		return &Event{
 			RawDescription: fmt.Sprintf("%s is at %s. It starts at %s", e.Name, venueName, startTime.Format(localTimeDateFormat)),
