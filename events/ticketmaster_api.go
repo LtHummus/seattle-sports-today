@@ -322,15 +322,18 @@ func beginningOfTomorrow(t time.Time) time.Time {
 
 func eventShouldBeIgnored(e *TicketmasterEvent) bool {
 	if e.Classifications == nil || len(e.Classifications) == 0 {
+		log.Info().Str("name", e.Name).Msg("no classifications")
 		return true
 	}
 
 	if len(e.Embedded.Attractions) == 0 {
+		log.Info().Str("name", e.Name).Msg("no attractions")
 		return true
 	}
 
 	for _, curr := range e.Embedded.Attractions {
 		if seattleTeamsMap[curr.Id] {
+			log.Info().Str("name", e.Name).Str("attraction", curr.Id).Msg("attraction is a seattle team we check separately")
 			return true
 		}
 	}
@@ -400,7 +403,7 @@ func getEventForVenueID(ctx context.Context, apiKey string, venueName string, ve
 
 }
 
-func GetOtherEvents(ctx context.Context) ([]*Event, error) {
+func TicketmasterEvents(ctx context.Context) ([]*Event, error) {
 	ticketmasterApiKeySecretName := os.Getenv(TicketmasterApiKeySecretName)
 	if ticketmasterApiKeySecretName == "" {
 		log.Warn().Str("env_var_name", TicketmasterApiKeySecretName).Msg("environment variable not set. Not querying ticketmaster")
@@ -409,7 +412,7 @@ func GetOtherEvents(ctx context.Context) ([]*Event, error) {
 
 	apiKey, err := secrets.GetSecretString(ctx, ticketmasterApiKeySecretName)
 	if err != nil {
-		return nil, fmt.Errorf("events: GetOtherEvents: could not get ticketmaster secret: %w", err)
+		return nil, fmt.Errorf("events: TicketmasterEvents: could not get ticketmaster secret: %w", err)
 	}
 
 	today := time.Now().In(SeattleTimeZone)
@@ -423,7 +426,7 @@ func GetOtherEvents(ctx context.Context) ([]*Event, error) {
 		var e *Event
 		e, err = getEventForVenueID(ctx, apiKey, venueName, venueID, start, end)
 		if err != nil {
-			return nil, fmt.Errorf("events: GetOtherEvents: could not query for ticketmaster data: %w", err)
+			return nil, fmt.Errorf("events: TicketmasterEvents: could not query for ticketmaster data: %w", err)
 		}
 		if e != nil {
 			res = append(res, e)
