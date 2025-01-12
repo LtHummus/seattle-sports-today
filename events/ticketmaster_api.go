@@ -328,6 +328,11 @@ func eventShouldBeIgnored(e *TicketmasterEvent) bool {
 		venueName = e.Embedded.Venues[0].Name
 	}
 
+	if e.Dates.Status.Code == "cancelled" {
+		log.Info().Str("name", e.Name).Str("venue_name", venueName).Msg("event is cancelled")
+		return true
+	}
+
 	if e.Classifications == nil || len(e.Classifications) == 0 {
 		log.Info().Str("name", e.Name).Str("venue_name", venueName).Msg("no classifications")
 		return true
