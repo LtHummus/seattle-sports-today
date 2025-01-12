@@ -292,6 +292,8 @@ const (
 
 	TicketmasterEventSearchAPI   = "https://app.ticketmaster.com/discovery/v2/events"
 	TicketmasterApiKeySecretName = "TICKETMASTER_API_KEY_SECRET_NAME"
+
+	SubTypeIDTouringFacility = "KZFzBErXgnZfZ7vAvv"
 )
 
 // seattleVenueMap is a map of venues to ticketmaster's internal venue ID for venues we should look at
@@ -321,19 +323,30 @@ func beginningOfTomorrow(t time.Time) time.Time {
 }
 
 func eventShouldBeIgnored(e *TicketmasterEvent) bool {
+	venueName := ""
+	if len(e.Embedded.Venues) != 0 {
+		venueName = e.Embedded.Venues[0].Name
+	}
+
 	if e.Classifications == nil || len(e.Classifications) == 0 {
-		log.Info().Str("name", e.Name).Msg("no classifications")
+		log.Info().Str("name", e.Name).Str("venue_name", venueName).Msg("no classifications")
 		return true
 	}
 
 	if len(e.Embedded.Attractions) == 0 {
-		log.Info().Str("name", e.Name).Msg("no attractions")
+		log.Info().Str("name", e.Name).Str("venue_name", venueName).Msg("no attractions")
+		return true
+	}
+
+	if e.Classifications[0].SubType.Id == SubTypeIDTouringFacility {
+		// we don't want to list arena tours (as cool as they are)
+		log.Info().Str("name", e.Name).Str("venue_name", venueName).Msg("is facility tour")
 		return true
 	}
 
 	for _, curr := range e.Embedded.Attractions {
 		if seattleTeamsMap[curr.Id] {
-			log.Info().Str("name", e.Name).Str("attraction", curr.Id).Msg("attraction is a seattle team we check separately")
+			log.Info().Str("name", e.Name).Str("venue_name", venueName).Str("attraction", curr.Id).Msg("attraction is a seattle team we check separately")
 			return true
 		}
 	}
