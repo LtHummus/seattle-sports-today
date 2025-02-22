@@ -289,6 +289,7 @@ const (
 	AttractionIDKraken   = "K8vZ917_vgV"
 	AttractionIDSeahawks = "K8vZ9171oU7"
 	AttractionIDMariners = "K8vZ9171o6f"
+	AttractionIDSounders = "K8vZ917G8RV"
 
 	TicketmasterEventSearchAPI   = "https://app.ticketmaster.com/discovery/v2/events"
 	TicketmasterApiKeySecretName = "TICKETMASTER_API_KEY_SECRET_NAME"
@@ -311,6 +312,7 @@ var seattleTeamsMap = map[string]bool{
 	AttractionIDKraken:   true,
 	AttractionIDSeahawks: true,
 	AttractionIDMariners: true,
+	AttractionIDSounders: true,
 }
 
 func beginningOfDay(t time.Time) time.Time {
