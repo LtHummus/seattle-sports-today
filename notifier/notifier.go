@@ -39,11 +39,9 @@ var httpClient = xray.Client(http.DefaultClient)
 
 func Notify(ctx context.Context, text string, priority Priority, emoji Emoji) error {
 	secretARN := os.Getenv(envVarNotificationSecretName)
-
-	log.Info().Str("secret_arn", secretARN).Msg("loading secret")
-
-	notifierKey, err := secrets.GetSecretString(ctx, secretARN)
 	
+	notifierKey, err := secrets.GetSecretString(ctx, secretARN)
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("https://ntfy.sh/%s", notifierKey), strings.NewReader(text))
 	if err != nil {
 		log.Error().Err(err).Msg("could not build ntfy request")
