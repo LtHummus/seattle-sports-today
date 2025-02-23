@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
 	"github.com/lthummus/seattle-sports-today/events"
@@ -125,6 +126,7 @@ func main() {
 	if os.Getenv("_HANDLER") != "" {
 		lambda.Start(eventHandler)
 	} else {
+		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 		err := eventHandler(context.Background())
 		if err != nil {
 			log.Error().Err(err).Msg("error running handler")
