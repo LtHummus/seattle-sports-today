@@ -12,9 +12,8 @@ import (
 )
 
 const (
-	marinersTeamID = 136
-
-	springTraining = "Spring Training"
+	marinersTeamID     = 136
+	tMobileParkVenueID = 680
 )
 
 type mlbTodayGamesResponse struct {
@@ -148,11 +147,11 @@ func GetMarinersGame(ctx context.Context) ([]*Event, error) {
 		if curr.Teams.Home.Team.Id == marinersTeamID {
 			startTime := curr.GameDate.In(SeattleTimeZone).Format(localTimeDateFormat)
 
-			if curr.SeriesDescription == springTraining {
-				// hack for skipping over spring training games...
+			if curr.Venue.Id != tMobileParkVenueID {
+				// spring training games do not take place at T-Mobile park, so explicitly check that this game is in
+				// seattle
+				log.Info().Str("venue_name", curr.Venue.Name).Int("venue_id", curr.Venue.Id).Msg("skipping event due to venue")
 				continue
-				
-				// TODO: replace this with T-Mobile Park's venue ID during the regular season
 			}
 
 			return []*Event{
