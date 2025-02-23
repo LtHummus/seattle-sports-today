@@ -11,7 +11,11 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const marinersTeamID = 136
+const (
+	marinersTeamID = 136
+
+	springTraining = "Spring Training"
+)
 
 type mlbTodayGamesResponse struct {
 	Copyright            string `json:"copyright"`
@@ -143,6 +147,13 @@ func GetMarinersGame(ctx context.Context) ([]*Event, error) {
 	for _, curr := range payload.Dates[0].Games {
 		if curr.Teams.Home.Team.Id == marinersTeamID {
 			startTime := curr.GameDate.In(SeattleTimeZone).Format(localTimeDateFormat)
+
+			if curr.SeriesDescription == springTraining {
+				// hack for skipping over spring training games...
+				continue
+				
+				// TODO: replace this with T-Mobile Park's venue ID during the regular season
+			}
 
 			return []*Event{
 				{
