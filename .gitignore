@@ -2,3 +2,4 @@
 .idea
 *.iml
 bin
+cdk.context.json
