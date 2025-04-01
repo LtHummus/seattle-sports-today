@@ -46,7 +46,7 @@ type Event struct {
 	LocalTime string `json:"local_time"`
 	Opponent  string `json:"opponent"`
 
-	RawDescription string
+	RawDescription string `json:"raw_description,omitempty"`
 
 	RawTime int64 `json:"raw_time"`
 }

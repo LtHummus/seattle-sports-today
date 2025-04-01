@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	_ "embed"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"os"
@@ -37,6 +38,41 @@ func init() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("could not parse template")
 	}
+}
+
+func renderJSON(foundEvents []*events.Event) ([]byte, error) {
+	renderableEvents := make([]map[string]string, len(foundEvents))
+
+	for i, curr := range foundEvents {
+		e := map[string]string{}
+		e["description"] = curr.String()
+		if curr.Venue != "" {
+			e["venue"] = curr.Venue
+		}
+		if curr.TeamName != "" {
+			e["team_name"] = curr.TeamName
+		}
+		if curr.Opponent != "" {
+			e["opponent"] = curr.Opponent
+		}
+		if curr.LocalTime != "" {
+			e["local_time"] = curr.LocalTime
+		}
+		renderableEvents[i] = e
+	}
+
+	data := map[string]any{
+		"date":         events.SeattleCurrentTime.Format("2006-01-02"),
+		"events_found": len(foundEvents) != 0,
+		"events":       renderableEvents,
+	}
+
+	payload, err := json.Marshal(data)
+	if err != nil {
+		return nil, fmt.Errorf("renderJSON: could not render: %w", err)
+	}
+
+	return payload, nil
 }
 
 func renderPage(foundEvents []*events.Event) ([]byte, error) {
@@ -89,11 +125,17 @@ func eventHandler(ctx context.Context) error {
 		return err
 	}
 
+	jsonData, err := renderJSON(foundEvents)
+	if err != nil {
+		_ = notifier.Notify(ctx, fmt.Sprintf("ERROR: could not render JSON: %s", err.Error()), notifier.PriorityHigh, notifier.EmojiSiren)
+		return err
+	}
+
 	log.Info().Msg("render complete")
 
 	if os.Getenv("_HANDLER") != "" || os.Getenv("UPLOAD_ANYWAY") == "true" {
 		log.Info().Msg("beginning upload")
-		err = uploader.Upload(ctx, page)
+		err = uploader.Upload(ctx, page, jsonData)
 		if err != nil {
 			_ = notifier.Notify(ctx, fmt.Sprintf("ERROR: upload page: %s", err.Error()), notifier.PriorityHigh, notifier.EmojiSiren)
 			return err
@@ -102,7 +144,7 @@ func eventHandler(ctx context.Context) error {
 		log.Info().Msg("upload complete")
 	} else {
 		log.Warn().Msg("detected running locally, not uploading")
-		fmt.Printf("%s\n", string(page))
+		fmt.Printf("%s\n----------\n%s\n", string(jsonData), string(page))
 	}
 
 	log.Info().Msg("all in a day's work...")
