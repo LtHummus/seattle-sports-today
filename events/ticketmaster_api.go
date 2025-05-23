@@ -20,6 +20,7 @@ const (
 	AttractionIDMariners = "K8vZ9171o6f"
 	AttractionIDSounders = "K8vZ917G8RV"
 	AttractionIDReign    = "K8vZ9178Dm7"
+	AttractionIDStorm    = "K8vZ9171xo0"
 
 	TicketmasterEventSearchAPI   = "https://app.ticketmaster.com/discovery/v2/events"
 	TicketmasterApiKeySecretName = "TICKETMASTER_API_KEY_SECRET_NAME"
@@ -38,12 +39,13 @@ var seattleVenueMap = map[string]string{
 // seattleTeamsMap is a set of attraction IDs (read: sports teams) that we want to ignore for this so we don't
 // count these events twice (since we check for them in other places). Note for later ... should we just do _everything_
 // via the tikcetmaster API? probably
-var seattleTeamsMap = map[string]bool{
-	AttractionIDKraken:   true,
-	AttractionIDSeahawks: true,
-	AttractionIDMariners: true,
-	AttractionIDSounders: true,
-	AttractionIDReign:    true,
+var seattleTeamsMap = map[string]struct{}{
+	AttractionIDKraken:   {},
+	AttractionIDSeahawks: {},
+	AttractionIDMariners: {},
+	AttractionIDSounders: {},
+	AttractionIDReign:    {},
+	AttractionIDStorm:    {},
 }
 
 func beginningOfDay(t time.Time) time.Time {
@@ -83,7 +85,7 @@ func eventShouldBeIgnored(e *TicketmasterEvent) bool {
 	}
 
 	for _, curr := range e.Embedded.Attractions {
-		if seattleTeamsMap[curr.Id] {
+		if _, contained := seattleTeamsMap[curr.Id]; contained {
 			log.Info().Str("name", e.Name).Str("venue_name", venueName).Str("attraction", curr.Id).Msg("attraction is a seattle team we check separately")
 			return true
 		}
