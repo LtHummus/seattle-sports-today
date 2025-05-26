@@ -164,7 +164,7 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("could not initialize secrets manager client")
 	}
-
+	
 	if os.Getenv("_HANDLER") != "" {
 		lambda.Start(eventHandler)
 	} else {

@@ -25,6 +25,7 @@ const (
 	domainName             = "isthereaseattlehomegametoday.com"
 	notificationSecretName = "seattle-sports-today/ntfy-secret"
 	ticketmasterSecretName = "seattle-sports-today/ticketmaster-api-key"
+	wbnaSecretName         = "seattle-sports-today/wbna-api-key"
 )
 
 type CdkStackProps struct {
@@ -40,6 +41,7 @@ func NewCdkStack(scope constructs.Construct, id string, props *CdkStackProps) aw
 
 	notificationSecret := awssecretsmanager.Secret_FromSecretNameV2(stack, jsii.String("NotificationSecret"), jsii.String(notificationSecretName))
 	ticketmasterSecret := awssecretsmanager.Secret_FromSecretNameV2(stack, jsii.String("TicketmasterSecret"), jsii.String(ticketmasterSecretName))
+	wbnaSecret := awssecretsmanager.Secret_FromSecretNameV2(stack, jsii.String("WNBASecret"), jsii.String(wbnaSecretName))
 
 	bucket := awss3.NewBucket(stack, jsii.String("hosting-bucket"), &awss3.BucketProps{
 		AccessControl: awss3.BucketAccessControl_PRIVATE,
@@ -107,6 +109,7 @@ func NewCdkStack(scope constructs.Construct, id string, props *CdkStackProps) aw
 			"NOTIFIER_SECRET_NAME":             jsii.String(notificationSecretName),
 			"SPECIAL_EVENTS_TABLE_NAME":        specialEventsTable.TableName(),
 			"TICKETMASTER_API_KEY_SECRET_NAME": jsii.String(ticketmasterSecretName),
+			"WBNA_API_KEY_SECERET_NAME":        jsii.String(wbnaSecretName),
 		},
 		LoggingFormat:   awslambda.LoggingFormat_JSON,
 		InsightsVersion: awslambda.LambdaInsightsVersion_VERSION_1_0_317_0(),
@@ -117,6 +120,7 @@ func NewCdkStack(scope constructs.Construct, id string, props *CdkStackProps) aw
 	distribution.GrantCreateInvalidation(updateFunction)
 	notificationSecret.GrantRead(updateFunction, nil)
 	ticketmasterSecret.GrantRead(updateFunction, nil)
+	wbnaSecret.GrantRead(updateFunction, nil)
 	specialEventsTable.GrantReadData(updateFunction)
 
 	eventRule := awsevents.NewRule(stack, jsii.String("UpdateFunctionCron"), &awsevents.RuleProps{
