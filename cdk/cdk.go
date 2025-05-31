@@ -109,7 +109,7 @@ func NewCdkStack(scope constructs.Construct, id string, props *CdkStackProps) aw
 			"NOTIFIER_SECRET_NAME":             jsii.String(notificationSecretName),
 			"SPECIAL_EVENTS_TABLE_NAME":        specialEventsTable.TableName(),
 			"TICKETMASTER_API_KEY_SECRET_NAME": jsii.String(ticketmasterSecretName),
-			"WBNA_API_KEY_SECERET_NAME":        jsii.String(wbnaSecretName),
+			"WBNA_API_KEY_SECRET_NAME":         jsii.String(wbnaSecretName),
 		},
 		LoggingFormat:   awslambda.LoggingFormat_JSON,
 		InsightsVersion: awslambda.LambdaInsightsVersion_VERSION_1_0_317_0(),

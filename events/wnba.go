@@ -112,7 +112,7 @@ type WNBACompetition struct {
 func GetStormGame(ctx context.Context) ([]*Event, error) {
 	apiKeySecretName := os.Getenv("WBNA_API_KEY_SECRET_NAME")
 	if apiKeySecretName == "" {
-		log.Warn().Msg("WBNA_API_KEY_SECERET_NAME not set")
+		log.Warn().Msg("WBNA_API_KEY_SECRET_NAME not set")
 		return nil, nil
 	}
 
@@ -131,6 +131,7 @@ func GetStormGame(ctx context.Context) ([]*Event, error) {
 	v.Add("month", fmt.Sprintf("%02d", month))
 	v.Add("day", fmt.Sprintf("%02d", day))
 
+	log.Info().Str("wbna_api_key_secret_name", apiKeySecretName).Msg("querying for WNBA games")
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("https://wnba-api.p.rapidapi.com/wnbaschedule?%s", v.Encode()), nil)
 	if err != nil {
 		return nil, fmt.Errorf("events: GetStormGame: could not build request: %w", err)
@@ -153,6 +154,8 @@ func GetStormGame(ctx context.Context) ([]*Event, error) {
 		}
 		return nil, fmt.Errorf("events: GetStormGame: could not retireve WNBA schedule: %s", string(body))
 	}
+
+	log.Info().Str("status", resp.Status).Msg("got response from WNBA api")
 
 	var payload map[string][]WNBACompetition
 	err = json.NewDecoder(resp.Body).Decode(&payload)
@@ -190,6 +193,11 @@ func GetStormGame(ctx context.Context) ([]*Event, error) {
 		}
 		seattleStart := startTime.In(SeattleTimeZone)
 
+		log.Info().
+			Str("team_name", "Seattle Storm").
+			Str("opponent", awayTeamName).
+			Str("start_time", seattleStart.Format(localTimeDateFormat)).
+			Msg("found game")
 		return []*Event{
 			{
 				TeamName:  "Seattle Storm",
@@ -200,6 +208,8 @@ func GetStormGame(ctx context.Context) ([]*Event, error) {
 			},
 		}, nil
 	}
+
+	log.Info().Msg("no WNBA games today")
 
 	return nil, nil
 }
