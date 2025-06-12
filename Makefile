@@ -1,7 +1,7 @@
 .PHONY: build deploy clean
 
 build:
-	GOOS=linux GOARCH=arm64 go build -tags lambda.norpc -o bin/bootstrap ./main.go
+	GOOS=linux GOARCH=arm64 go build -tags lambda.norpc -ldflags "-s -w" -trimpath -o bin/bootstrap ./main.go
 
 deploy:
 	cd cdk && cdk deploy --build
