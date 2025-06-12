@@ -45,13 +45,14 @@ func GetSpecialEvents(ctx context.Context) ([]*Event, error) {
 	}
 
 	var items []struct {
-		Date      string `dynamodbav:"date"`
-		Slug      string `dynamodbav:"slug"`
-		TeamName  string `dynamodbav:"team_name"`
-		Venue     string `dynamodbav:"venue"`
-		LocalTime string `dynamodbav:"local_time"`
-		Opponent  string `dynamodbav:"opponent"`
-		RawTime   int64  `dynamodbav:"raw_time"`
+		Date           string `dynamodbav:"date"`
+		Slug           string `dynamodbav:"slug"`
+		TeamName       string `dynamodbav:"team_name"`
+		Venue          string `dynamodbav:"venue"`
+		LocalTime      string `dynamodbav:"local_time"`
+		Opponent       string `dynamodbav:"opponent"`
+		RawDescription string `dynamodbav:"raw_description"`
+		RawTime        int64  `dynamodbav:"raw_time"`
 	}
 	err = attributevalue.UnmarshalListOfMaps(res.Items, &items)
 	if err != nil {
@@ -61,11 +62,12 @@ func GetSpecialEvents(ctx context.Context) ([]*Event, error) {
 	ret := make([]*Event, len(items))
 	for i, curr := range items {
 		ret[i] = &Event{
-			TeamName:  curr.TeamName,
-			Venue:     curr.Venue,
-			LocalTime: curr.LocalTime,
-			Opponent:  curr.Opponent,
-			RawTime:   curr.RawTime,
+			TeamName:       curr.TeamName,
+			Venue:          curr.Venue,
+			LocalTime:      curr.LocalTime,
+			Opponent:       curr.Opponent,
+			RawDescription: curr.RawDescription,
+			RawTime:        curr.RawTime,
 		}
 	}
 
