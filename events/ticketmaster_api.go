@@ -96,7 +96,7 @@ func eventShouldBeIgnored(e *TicketmasterEvent) bool {
 	return false
 }
 
-func getEventForVenueID(ctx context.Context, apiKey string, venueName string, venueID string, searchStart string, searchEnd string) (*Event, error) {
+func getEventsForVenueID(ctx context.Context, apiKey string, venueName string, venueID string, searchStart string, searchEnd string) ([]*Event, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, TicketmasterEventSearchAPI, nil)
 	if err != nil {
 		return nil, err
@@ -136,7 +136,8 @@ func getEventForVenueID(ctx context.Context, apiKey string, venueName string, ve
 		return nil, err
 	}
 
-	// TODO: make this return multiple events if needed
+	var ret []*Event
+
 	for _, e := range payload.Embedded.Events {
 
 		if eventShouldBeIgnored(&e) {
@@ -148,13 +149,13 @@ func getEventForVenueID(ctx context.Context, apiKey string, venueName string, ve
 
 		log.Info().Str("venue_name", venueName).Str("event_name", e.Name).Msg("found event from ticketmaster")
 
-		return &Event{
+		ret = append(ret, &Event{
 			RawDescription: fmt.Sprintf("%s is at %s. It starts at %s", e.Name, venueName, startTime.Format(localTimeDateFormat)),
 			RawTime:        e.Dates.Start.DateTime.Unix(),
-		}, nil
+		})
 	}
 
-	return nil, nil
+	return ret, nil
 
 }
 
@@ -178,13 +179,13 @@ func TicketmasterEvents(ctx context.Context) ([]*Event, error) {
 	var res []*Event
 
 	for venueName, venueID := range seattleVenueMap {
-		var e *Event
-		e, err = getEventForVenueID(ctx, apiKey, venueName, venueID, start, end)
+		var e []*Event
+		e, err = getEventsForVenueID(ctx, apiKey, venueName, venueID, start, end)
 		if err != nil {
 			return nil, fmt.Errorf("events: TicketmasterEvents: could not query for ticketmaster data: %w", err)
 		}
 		if e != nil {
-			res = append(res, e)
+			res = append(res, e...)
 		}
 
 		// ticketmaster limits us to 5 calls per second -- add a delay so we don't blow through that
