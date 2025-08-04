@@ -95,6 +95,7 @@ func GetTodaysGames(ctx context.Context) ([]*Event, error) {
 	eventLock := &sync.Mutex{}
 
 	eg.Go(fetchAndAdd(ctx2, "Sounders", GetSoundersGame, &events, eventLock))
+	eg.Go(fetchAndAdd(ctx2, "Sounders", GetSoundersLeagueCupGame, &events, eventLock))
 	eg.Go(fetchAndAdd(ctx2, "Kraken", GetKrakenGame, &events, eventLock))
 	eg.Go(fetchAndAdd(ctx2, "Mariners", GetMarinersGame, &events, eventLock))
 	eg.Go(fetchAndAdd(ctx2, "Seahawks", GetSeahawksGame, &events, eventLock))
