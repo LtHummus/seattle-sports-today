@@ -15,14 +15,6 @@ import (
 )
 
 const (
-	AttractionIDKraken       = "K8vZ917_vgV"
-	AttractionIDSeahawks     = "K8vZ9171oU7"
-	AttractionIDMariners     = "K8vZ9171o6f"
-	AttractionIDSounders     = "K8vZ917G8RV"
-	AttractionIDReign        = "K8vZ9178Dm7"
-	AttractionIDStorm        = "K8vZ9171xo0"
-	AttractionIDClubWorldCup = "K8vZ9174TrV"
-
 	TicketmasterEventSearchAPI   = "https://app.ticketmaster.com/discovery/v2/events"
 	TicketmasterApiKeySecretName = "TICKETMASTER_API_KEY_SECRET_NAME"
 
@@ -31,19 +23,23 @@ const (
 
 // seattleVenueMap is a map of venues to ticketmaster's internal venue ID for venues we should look at
 var seattleVenueMap = map[string]string{
-	"Climate Pledge Arena": "KovZ917Ahkk",
-	"Lumen Field":          "KovZpZAEknnA",
-	"T-Mobile Park":        "KovZpZAEevAA",
-	"WAMU Theater":         "KovZpZAFFE7A",
+	"Climate Pledge Arena":    "KovZ917Ahkk",
+	"Lumen Field":             "KovZpZAEknnA",
+	"T-Mobile Park":           "KovZpZAEevAA",
+	"WAMU Theater":            "KovZpZAFFE7A",
+	"Husky Stadium":           "KovZpZAaIJtA",
+	"American Airlines Arena": "KovZpZAFkkIA",
 }
 
 var seattleTeamAttractionIDs = map[string]string{
-	AttractionIDKraken:   "Seattle Kraken",
-	AttractionIDSeahawks: "Seattle Seahawks",
-	AttractionIDMariners: "Seattle Mariners",
-	AttractionIDSounders: "Seattle Sounders",
-	AttractionIDReign:    "Seattle Reign",
-	AttractionIDStorm:    "Seattle Storm",
+	"K8vZ917_vgV": "Seattle Kraken",
+	"K8vZ9171oU7": "Seattle Seahawks",
+	"K8vZ9171o6f": "Seattle Mariners",
+	"K8vZ917G8RV": "Seattle Sounders",
+	"K8vZ9178Dm7": "Seattle Reign",
+	"K8vZ9171xo0": "Seattle Storm",
+	"K8vZ9171_P0": "UW Huskies (Football)",
+	"K8vZ9171QC7": "UW Huskies (Women's Volleyball)",
 }
 
 func beginningOfDay(t time.Time) time.Time {
