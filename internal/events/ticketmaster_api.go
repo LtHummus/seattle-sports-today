@@ -11,7 +11,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"github.com/lthummus/seattle-sports-today/secrets"
+	"github.com/lthummus/seattle-sports-today/internal/secrets"
 )
 
 const (
@@ -37,26 +37,17 @@ var seattleVenueMap = map[string]string{
 	"WAMU Theater":         "KovZpZAFFE7A",
 }
 
-// attractionIDsToIgnore is a set of attraction IDs (read: sports teams) that we want to ignore for this so we don't
-// count these events twice (since we check for them in other places). Note for later ... should we just do _everything_
-// via the tikcetmaster API? probably
-var attractionIDsToIgnore = map[string]struct{}{
-	AttractionIDKraken:       {},
-	AttractionIDSeahawks:     {},
-	AttractionIDMariners:     {},
-	AttractionIDSounders:     {},
-	AttractionIDReign:        {},
-	AttractionIDStorm:        {},
-	AttractionIDClubWorldCup: {},
+var seattleTeamAttractionIDs = map[string]string{
+	AttractionIDKraken:   "Seattle Kraken",
+	AttractionIDSeahawks: "Seattle Seahawks",
+	AttractionIDMariners: "Seattle Mariners",
+	AttractionIDSounders: "Seattle Sounders",
+	AttractionIDReign:    "Seattle Reign",
+	AttractionIDStorm:    "Seattle Storm",
 }
 
 func beginningOfDay(t time.Time) time.Time {
 	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
-}
-
-func beginningOfTomorrow(t time.Time) time.Time {
-	tomorrow := t.AddDate(0, 0, 1)
-	return time.Date(tomorrow.Year(), tomorrow.Month(), tomorrow.Day(), 0, 0, 0, 0, t.Location())
 }
 
 func eventShouldBeIgnored(e *TicketmasterEvent) bool {
@@ -86,32 +77,66 @@ func eventShouldBeIgnored(e *TicketmasterEvent) bool {
 		return true
 	}
 
-	for _, curr := range e.Embedded.Attractions {
-		if _, contained := attractionIDsToIgnore[curr.Id]; contained {
-			log.Info().Str("name", e.Name).Str("venue_name", venueName).Str("attraction", curr.Id).Msg("attraction is a seattle team we check separately")
-			return true
-		}
-	}
-
 	return false
 }
 
-func getEventsForVenueID(ctx context.Context, apiKey string, venueName string, venueID string, searchStart string, searchEnd string) ([]*Event, error) {
+func buildInternalEvent(e TicketmasterEvent, venueName string) *Event {
+	var seattleTeam string
+	for _, curr := range e.Embedded.Attractions {
+		if team := seattleTeamAttractionIDs[curr.Id]; team != "" {
+			seattleTeam = team
+			break
+		}
+	}
+
+	eventTime := e.Dates.Start.DateTime.In(SeattleTimeZone)
+
+	if seattleTeam == "" {
+		// not a seattle sports team, just take event name and build that event
+		return &Event{
+			RawDescription: fmt.Sprintf("%s is at %s. It starts at %s", e.Name, venueName, eventTime.Format(localTimeDateFormat)),
+			RawTime:        eventTime.Unix(),
+		}
+	}
+
+	// this code assumes there are only two "attractions" ... that should be good for any sports match?
+	var opponentTeam string
+	for _, curr := range e.Embedded.Attractions {
+		if team := seattleTeamAttractionIDs[curr.Id]; team == "" {
+			opponentTeam = curr.Name
+		}
+	}
+
+	if opponentTeam == "" {
+		log.Warn().Str("venue_name", venueName).Msg("could not find opponent attraction ID")
+		opponentTeam = "some unknown opponent"
+	}
+
+	return &Event{
+		TeamName:  seattleTeam,
+		Venue:     venueName,
+		LocalTime: eventTime.Format(localTimeDateFormat),
+		Opponent:  opponentTeam,
+		RawTime:   eventTime.Unix(),
+	}
+}
+
+func getEventsForVenueID(ctx context.Context, apiKey string, venueName string, venueID string, startDate time.Time, endDate time.Time) ([]*Event, []*Event, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, TicketmasterEventSearchAPI, nil)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	q := req.URL.Query()
 	q.Add("venueId", venueID)
 	q.Add("apikey", apiKey)
-	q.Add("startDateTime", searchStart)
-	q.Add("endDateTime", searchEnd)
+	q.Add("startDateTime", startDate.Format(time.RFC3339))
+	q.Add("endDateTime", endDate.Format(time.RFC3339))
 	req.URL.RawQuery = q.Encode()
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer resp.Body.Close()
 
@@ -119,10 +144,10 @@ func getEventsForVenueID(ctx context.Context, apiKey string, venueName string, v
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			log.Error().Err(err).Str("status", resp.Status).Msg("could not read error response body")
-			return nil, fmt.Errorf("events: getEventForVenueID: could not read error body: %w", err)
+			return nil, nil, fmt.Errorf("events: getEventForVenueID: could not read error body: %w", err)
 		}
 		log.Error().Str("status", resp.Status).Msg("error retrieving data from ticketmaster")
-		return nil, fmt.Errorf("events: getEventForVenueID: could not retireve data from ticketmaster: %s", string(body))
+		return nil, nil, fmt.Errorf("events: getEventForVenueID: could not retireve data from ticketmaster: %s", string(body))
 	}
 
 	remainingRequestCount := resp.Header.Get("Rate-Limit-Available")
@@ -133,10 +158,11 @@ func getEventsForVenueID(ctx context.Context, apiKey string, venueName string, v
 	var payload TicketmasterEventSearchResponse
 	err = json.NewDecoder(resp.Body).Decode(&payload)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	var ret []*Event
+	var today []*Event
+	var tomorrow []*Event
 
 	for _, e := range payload.Embedded.Events {
 
@@ -145,52 +171,58 @@ func getEventsForVenueID(ctx context.Context, apiKey string, venueName string, v
 			continue
 		}
 
-		startTime := e.Dates.Start.DateTime.In(SeattleTimeZone)
-
 		log.Info().Str("venue_name", venueName).Str("event_name", e.Name).Msg("found event from ticketmaster")
 
-		ret = append(ret, &Event{
-			RawDescription: fmt.Sprintf("%s is at %s. It starts at %s", e.Name, venueName, startTime.Format(localTimeDateFormat)),
-			RawTime:        e.Dates.Start.DateTime.Unix(),
-		})
+		event := buildInternalEvent(e, venueName)
+		eventTime := e.Dates.Start.DateTime.In(SeattleTimeZone)
+		if isDay(SeattleToday, eventTime) {
+			today = append(today, event)
+		} else if isDay(SeattleTomorrow, eventTime) {
+			tomorrow = append(tomorrow, event)
+		}
 	}
 
-	return ret, nil
+	return today, tomorrow, nil
 
 }
 
-func TicketmasterEvents(ctx context.Context) ([]*Event, error) {
+func getTicketmasterEvents(ctx context.Context) ([]*Event, []*Event, error) {
 	ticketmasterApiKeySecretName := os.Getenv(TicketmasterApiKeySecretName)
 	if ticketmasterApiKeySecretName == "" {
 		log.Warn().Str("env_var_name", TicketmasterApiKeySecretName).Msg("environment variable not set. Not querying ticketmaster")
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	apiKey, err := secrets.GetSecretString(ctx, ticketmasterApiKeySecretName)
 	if err != nil {
-		return nil, fmt.Errorf("events: TicketmasterEvents: could not get ticketmaster secret: %w", err)
+		return nil, nil, fmt.Errorf("events: getTicketmasterEvents: could not get ticketmaster secret: %w", err)
 	}
 
 	today := time.Now().In(SeattleTimeZone)
 
-	start := beginningOfDay(today).Format(time.RFC3339)
-	end := beginningOfTomorrow(today).Format(time.RFC3339)
+	start := beginningOfDay(today)
+	end := start.AddDate(0, 0, 2)
 
-	var res []*Event
+	var todayEvents []*Event
+	var tomorrowEvents []*Event
 
 	for venueName, venueID := range seattleVenueMap {
-		var e []*Event
-		e, err = getEventsForVenueID(ctx, apiKey, venueName, venueID, start, end)
+		var foundToday []*Event
+		var foundTomorrow []*Event
+		foundToday, foundTomorrow, err = getEventsForVenueID(ctx, apiKey, venueName, venueID, start, end)
 		if err != nil {
-			return nil, fmt.Errorf("events: TicketmasterEvents: could not query for ticketmaster data: %w", err)
+			return nil, nil, fmt.Errorf("events: getTicketmasterEvents: could not query for ticketmaster data: %w", err)
 		}
-		if e != nil {
-			res = append(res, e...)
+		if len(foundToday) > 0 {
+			todayEvents = append(todayEvents, foundToday...)
+		}
+		if len(foundTomorrow) > 0 {
+			tomorrowEvents = append(tomorrowEvents, foundTomorrow...)
 		}
 
 		// ticketmaster limits us to 5 calls per second -- add a delay so we don't blow through that
 		time.Sleep(300 * time.Millisecond)
 	}
 
-	return res, nil
+	return todayEvents, tomorrowEvents, nil
 }

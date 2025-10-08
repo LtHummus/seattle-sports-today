@@ -22,6 +22,20 @@
             </div>
         {{ end }}
     </div>
+    <div id="tomorrow">
+        <strong>OK WHAT ABOUT TOMORROW...</strong>
+    </div>
+    {{ if .Tomorrow }}
+        <div class="grid">
+            {{ range .Tomorrow }}
+                <div><p>{{ . }}</p></div>
+            {{ end }}
+        </div>
+    {{ else }}
+        <div class="grid">
+            <div><p>And nothing is on the docket for tomorrow...</p></div>
+        </div>
+    {{ end }}
     <div class="date-footer">
         {{ .FullGeneratedDate }}
         Generated on {{ .GeneratedDate }}
