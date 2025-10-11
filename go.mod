@@ -1,8 +1,6 @@
 module github.com/lthummus/seattle-sports-today
 
-go 1.24
-
-toolchain go1.24.0
+go 1.24.0
 
 require (
 	github.com/aws/aws-lambda-go v1.48.0
@@ -16,6 +14,7 @@ require (
 	github.com/aws/aws-xray-sdk-go v1.8.5
 	github.com/rs/zerolog v1.34.0
 	golang.org/x/sync v0.14.0
+	golang.org/x/time v0.14.0
 )
 
 require (
@@ -38,7 +37,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.30.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.33.19 // indirect
 	github.com/aws/smithy-go v1.22.3 // indirect
-	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect

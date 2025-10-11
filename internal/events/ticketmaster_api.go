@@ -9,6 +9,8 @@ import (
 	"os"
 	"time"
 
+	"golang.org/x/time/rate"
+
 	"github.com/rs/zerolog/log"
 
 	"github.com/lthummus/seattle-sports-today/internal/secrets"
@@ -20,6 +22,8 @@ const (
 
 	SubTypeIDTouringFacility = "KZFzBErXgnZfZ7vAvv"
 )
+
+var ticketmasterRateLimiter = rate.NewLimiter(4, 4)
 
 // seattleVenueMap is a map of venues to ticketmaster's internal venue ID for venues we should look at
 var seattleVenueMap = map[string]string{
@@ -76,7 +80,7 @@ func eventShouldBeIgnored(e *TicketmasterEvent) bool {
 	return false
 }
 
-func buildInternalEvent(e TicketmasterEvent, venueName string) *Event {
+func buildInternalEvent(e TicketmasterEvent, venueName string) (*Event, error) {
 	var seattleTeam string
 	for _, curr := range e.Embedded.Attractions {
 		if team := seattleTeamAttractionIDs[curr.Id]; team != "" {
@@ -86,13 +90,24 @@ func buildInternalEvent(e TicketmasterEvent, venueName string) *Event {
 	}
 
 	eventTime := e.Dates.Start.DateTime.In(SeattleTimeZone)
+	if e.Dates.Start.TimeTBA && !e.Dates.Start.DateTBD {
+		var err error
+		eventTime, err = time.ParseInLocation("2006-01-02", e.Dates.Start.LocalDate, SeattleTimeZone)
+		if err != nil {
+			log.Error().Err(err).Str("venue_name", venueName).Str("event_name", e.Name).Msg("could not parse start time")
+			return nil, fmt.Errorf("events: buildInternalEvent: could not parse start time: %w", err)
+		}
+
+		// since the event is Time TBA, just put it at noon
+		eventTime = eventTime.Add(12 * time.Hour)
+	}
 
 	if seattleTeam == "" {
 		// not a seattle sports team, just take event name and build that event
 		return &Event{
 			RawDescription: fmt.Sprintf("%s is at %s. It starts at %s", e.Name, venueName, eventTime.Format(localTimeDateFormat)),
 			RawTime:        eventTime.Unix(),
-		}
+		}, nil
 	}
 
 	// this code assumes there are only two "attractions" ... that should be good for any sports match?
@@ -114,7 +129,7 @@ func buildInternalEvent(e TicketmasterEvent, venueName string) *Event {
 		LocalTime: eventTime.Format(localTimeDateFormat),
 		Opponent:  opponentTeam,
 		RawTime:   eventTime.Unix(),
-	}
+	}, nil
 }
 
 func getEventsForVenueID(ctx context.Context, apiKey string, venueName string, venueID string, startDate time.Time, endDate time.Time) ([]*Event, []*Event, error) {
@@ -169,7 +184,10 @@ func getEventsForVenueID(ctx context.Context, apiKey string, venueName string, v
 
 		log.Info().Str("venue_name", venueName).Str("event_name", e.Name).Msg("found event from ticketmaster")
 
-		event := buildInternalEvent(e, venueName)
+		event, err := buildInternalEvent(e, venueName)
+		if err != nil {
+			continue
+		}
 		eventTime := e.Dates.Start.DateTime.In(SeattleTimeZone)
 		if isDay(SeattleToday, eventTime) {
 			today = append(today, event)
@@ -216,8 +234,10 @@ func getTicketmasterEvents(ctx context.Context) ([]*Event, []*Event, error) {
 			tomorrowEvents = append(tomorrowEvents, foundTomorrow...)
 		}
 
-		// ticketmaster limits us to 5 calls per second -- add a delay so we don't blow through that
-		time.Sleep(300 * time.Millisecond)
+		err = ticketmasterRateLimiter.Wait(ctx)
+		if err != nil {
+			log.Error().Err(err).Msg("could not wait for ticketmaster rate limiter")
+		}
 	}
 
 	return todayEvents, tomorrowEvents, nil

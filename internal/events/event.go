@@ -50,7 +50,7 @@ type EventResults struct {
 }
 
 type Event struct {
-	TeamName  string `json:"string"`
+	TeamName  string `json:"team_name"`
 	Venue     string `json:"venue"`
 	LocalTime string `json:"local_time"`
 	Opponent  string `json:"opponent"`
@@ -84,8 +84,7 @@ func fetchAndAppendEvents(ctx context.Context, fetcher eventFetcher, res *EventR
 	return nil
 }
 
-func GetTodaysGames(ctx context.Context) (*EventResults, error) {
-
+func GetTodayAndTomorrowGames(ctx context.Context) (*EventResults, error) {
 	eg, ctx := errgroup.WithContext(ctx)
 
 	res := &EventResults{}

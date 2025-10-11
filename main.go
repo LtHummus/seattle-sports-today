@@ -27,7 +27,7 @@ func eventHandler(ctx context.Context) error {
 	}()
 
 	log.Info().Msg("getting today's games")
-	eventResults, err := events.GetTodaysGames(ctx)
+	eventResults, err := events.GetTodayAndTomorrowGames(ctx)
 	if err != nil {
 		_ = notifier.Notify(ctx, fmt.Sprintf("ERROR: could not get today's games: %s", err.Error()), notifier.PriorityHigh, notifier.EmojiSiren)
 		return err
