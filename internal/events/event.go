@@ -68,6 +68,22 @@ func (e *Event) String() string {
 	return fmt.Sprintf("%s are playing against the %s at %s. The game starts at %s.", e.TeamName, e.Opponent, e.Venue, e.LocalTime)
 }
 
+func fetchAndAppendEvents(ctx context.Context, fetcher eventFetcher, res *EventResults, eventLock *sync.Mutex) error {
+	today, tomorrow, e := fetcher(ctx)
+	if e != nil {
+		return e
+	}
+	if len(today) == 0 && len(tomorrow) == 0 {
+		return nil
+	}
+
+	eventLock.Lock()
+	defer eventLock.Unlock()
+	res.TodayEvent = append(res.TodayEvent, today...)
+	res.TomorrowEvents = append(res.TomorrowEvents, tomorrow...)
+	return nil
+}
+
 func GetTodaysGames(ctx context.Context) (*EventResults, error) {
 
 	eg, ctx := errgroup.WithContext(ctx)
@@ -76,35 +92,15 @@ func GetTodaysGames(ctx context.Context) (*EventResults, error) {
 	var eventLock sync.Mutex
 
 	eg.Go(func() error {
-		today, tomorrow, e := getTicketmasterEvents(ctx)
-		if e != nil {
-			return e
-		}
-		if len(today) == 0 && len(tomorrow) == 0 {
-			return nil
-		}
-
-		eventLock.Lock()
-		defer eventLock.Unlock()
-		res.TodayEvent = append(res.TodayEvent, today...)
-		res.TomorrowEvents = append(res.TomorrowEvents, tomorrow...)
-		return nil
+		return fetchAndAppendEvents(ctx, getTicketmasterEvents, res, &eventLock)
 	})
 
 	eg.Go(func() error {
-		today, tomorrow, e := getSpecialEvents(ctx)
-		if e != nil {
-			return e
-		}
-		if len(today) == 0 && len(tomorrow) == 0 {
-			return nil
-		}
+		return fetchAndAppendEvents(ctx, getSpecialEvents, res, &eventLock)
+	})
 
-		eventLock.Lock()
-		defer eventLock.Unlock()
-		res.TodayEvent = append(res.TodayEvent, today...)
-		res.TomorrowEvents = append(res.TomorrowEvents, tomorrow...)
-		return nil
+	eg.Go(func() error {
+		return fetchAndAppendEvents(ctx, GetUWGames, res, &eventLock)
 	})
 
 	err := eg.Wait()
