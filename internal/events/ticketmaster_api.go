@@ -6,24 +6,20 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"time"
 
 	"golang.org/x/time/rate"
 
 	"github.com/rs/zerolog/log"
-
-	"github.com/lthummus/seattle-sports-today/internal/secrets"
 )
 
 const (
-	TicketmasterEventSearchAPI   = "https://app.ticketmaster.com/discovery/v2/events"
+	TicketmasterDefaultBaseURL   = "https://app.ticketmaster.com"
+	TicketmasterEventSearchAPI   = "%s/discovery/v2/events"
 	TicketmasterApiKeySecretName = "TICKETMASTER_API_KEY_SECRET_NAME"
 
 	SubTypeIDTouringFacility = "KZFzBErXgnZfZ7vAvv"
 )
-
-var ticketmasterRateLimiter = rate.NewLimiter(4, 4)
 
 // seattleVenueMap is a map of venues to ticketmaster's internal venue ID for venues we should look at
 var seattleVenueMap = map[string]string{
@@ -40,6 +36,14 @@ var seattleTeamAttractionIDs = map[string]string{
 	"K8vZ917G8RV": "Seattle Sounders",
 	"K8vZ9178Dm7": "Seattle Reign",
 	"K8vZ9171xo0": "Seattle Storm",
+}
+
+type ticketmasterFetcher struct {
+	venues        map[string]string
+	attractionIDs map[string]string
+	limiter       *rate.Limiter
+	apiKey        string
+	baseURL       string
 }
 
 func beginningOfDay(t time.Time) time.Time {
@@ -90,22 +94,24 @@ func buildInternalEvent(e TicketmasterEvent, venueName string) (*Event, error) {
 	}
 
 	eventTime := e.Dates.Start.DateTime.In(SeattleTimeZone)
+	eventTimeFormatted := eventTime.Format(localTimeDateFormat)
 	if e.Dates.Start.TimeTBA && !e.Dates.Start.DateTBD {
+		eventTimeFormatted = "TBA"
 		var err error
 		eventTime, err = time.ParseInLocation("2006-01-02", e.Dates.Start.LocalDate, SeattleTimeZone)
 		if err != nil {
-			log.Error().Err(err).Str("venue_name", venueName).Str("event_name", e.Name).Msg("could not parse start time")
-			return nil, fmt.Errorf("events: buildInternalEvent: could not parse start time: %w", err)
+			log.Error().Err(err).Str("venue_name", venueName).Str("event_name", e.Name).Msg("could not parse event date for TBA")
+			eventTime = e.Dates.Start.DateTime.In(SeattleTimeZone)
 		}
 
-		// since the event is Time TBA, just put it at noon
+		// we don't know the time, so just set it to noon for sorting purposes
 		eventTime = eventTime.Add(12 * time.Hour)
 	}
 
 	if seattleTeam == "" {
 		// not a seattle sports team, just take event name and build that event
 		return &Event{
-			RawDescription: fmt.Sprintf("%s is at %s. It starts at %s", e.Name, venueName, eventTime.Format(localTimeDateFormat)),
+			RawDescription: fmt.Sprintf("%s is at %s. It starts at %s", e.Name, venueName, eventTimeFormatted),
 			RawTime:        eventTime.Unix(),
 		}, nil
 	}
@@ -126,21 +132,21 @@ func buildInternalEvent(e TicketmasterEvent, venueName string) (*Event, error) {
 	return &Event{
 		TeamName:  seattleTeam,
 		Venue:     venueName,
-		LocalTime: eventTime.Format(localTimeDateFormat),
+		LocalTime: eventTimeFormatted,
 		Opponent:  opponentTeam,
 		RawTime:   eventTime.Unix(),
 	}, nil
 }
 
-func getEventsForVenueID(ctx context.Context, apiKey string, venueName string, venueID string, startDate time.Time, endDate time.Time) ([]*Event, []*Event, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, TicketmasterEventSearchAPI, nil)
+func (tm *ticketmasterFetcher) getEventsForVenueID(ctx context.Context, venueName string, venueID string, startDate time.Time, endDate time.Time) ([]*Event, []*Event, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf(TicketmasterEventSearchAPI, tm.baseURL), nil)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	q := req.URL.Query()
 	q.Add("venueId", venueID)
-	q.Add("apikey", apiKey)
+	q.Add("apikey", tm.apiKey)
 	q.Add("startDateTime", startDate.Format(time.RFC3339))
 	q.Add("endDateTime", endDate.Format(time.RFC3339))
 	req.URL.RawQuery = q.Encode()
@@ -200,18 +206,8 @@ func getEventsForVenueID(ctx context.Context, apiKey string, venueName string, v
 
 }
 
-func getTicketmasterEvents(ctx context.Context) ([]*Event, []*Event, error) {
-	ticketmasterApiKeySecretName := os.Getenv(TicketmasterApiKeySecretName)
-	if ticketmasterApiKeySecretName == "" {
-		log.Warn().Str("env_var_name", TicketmasterApiKeySecretName).Msg("environment variable not set. Not querying ticketmaster")
-		return nil, nil, nil
-	}
-
-	apiKey, err := secrets.GetSecretString(ctx, ticketmasterApiKeySecretName)
-	if err != nil {
-		return nil, nil, fmt.Errorf("events: getTicketmasterEvents: could not get ticketmaster secret: %w", err)
-	}
-
+func (tm *ticketmasterFetcher) GetEvents(ctx context.Context) ([]*Event, []*Event, error) {
+	var err error
 	today := time.Now().In(SeattleTimeZone)
 
 	start := beginningOfDay(today)
@@ -223,7 +219,7 @@ func getTicketmasterEvents(ctx context.Context) ([]*Event, []*Event, error) {
 	for venueName, venueID := range seattleVenueMap {
 		var foundToday []*Event
 		var foundTomorrow []*Event
-		foundToday, foundTomorrow, err = getEventsForVenueID(ctx, apiKey, venueName, venueID, start, end)
+		foundToday, foundTomorrow, err = tm.getEventsForVenueID(ctx, venueName, venueID, start, end)
 		if err != nil {
 			return nil, nil, fmt.Errorf("events: getTicketmasterEvents: could not query for ticketmaster data: %w", err)
 		}
@@ -234,7 +230,7 @@ func getTicketmasterEvents(ctx context.Context) ([]*Event, []*Event, error) {
 			tomorrowEvents = append(tomorrowEvents, foundTomorrow...)
 		}
 
-		err = ticketmasterRateLimiter.Wait(ctx)
+		err = tm.limiter.Wait(ctx)
 		if err != nil {
 			log.Error().Err(err).Msg("could not wait for ticketmaster rate limiter")
 		}

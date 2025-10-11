@@ -4,13 +4,17 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
 	"github.com/aws/aws-xray-sdk-go/xray"
 	"golang.org/x/sync/errgroup"
+	"golang.org/x/time/rate"
 
 	"github.com/rs/zerolog/log"
+
+	"github.com/lthummus/seattle-sports-today/internal/secrets"
 )
 
 type eventFetcher func(ctx context.Context) ([]*Event, []*Event, error)
@@ -91,7 +95,26 @@ func GetTodayAndTomorrowGames(ctx context.Context) (*EventResults, error) {
 	var eventLock sync.Mutex
 
 	eg.Go(func() error {
-		return fetchAndAppendEvents(ctx, getTicketmasterEvents, res, &eventLock)
+		ticketmasterApiKeySecretName := os.Getenv(TicketmasterApiKeySecretName)
+		if ticketmasterApiKeySecretName == "" {
+			log.Warn().Str("env_var_name", TicketmasterApiKeySecretName).Msg("environment variable not set. Not querying ticketmaster")
+			return nil
+		}
+
+		apiKey, err := secrets.GetSecretString(ctx, ticketmasterApiKeySecretName)
+		if err != nil {
+			return fmt.Errorf("events: getTicketmasterEvents: could not get ticketmaster secret: %w", err)
+		}
+
+		tm := &ticketmasterFetcher{
+			venues:        seattleVenueMap,
+			attractionIDs: seattleTeamAttractionIDs,
+			limiter:       rate.NewLimiter(4, 1),
+			apiKey:        apiKey,
+			baseURL:       TicketmasterDefaultBaseURL,
+		}
+
+		return fetchAndAppendEvents(ctx, tm.GetEvents, res, &eventLock)
 	})
 
 	eg.Go(func() error {
