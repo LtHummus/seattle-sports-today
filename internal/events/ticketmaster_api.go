@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"golang.org/x/time/rate"
@@ -36,6 +37,7 @@ var seattleTeamAttractionIDs = map[string]string{
 	"K8vZ917G8RV": "Seattle Sounders",
 	"K8vZ9178Dm7": "Seattle Reign",
 	"K8vZ9171xo0": "Seattle Storm",
+	"K8vZ917ri3V": "PWHL Seattle",
 }
 
 type ticketmasterFetcher struct {
@@ -84,10 +86,10 @@ func eventShouldBeIgnored(e *TicketmasterEvent) bool {
 	return false
 }
 
-func buildInternalEvent(e TicketmasterEvent, venueName string) (*Event, error) {
+func (tm *ticketmasterFetcher) buildInternalEvent(e TicketmasterEvent, venueName string) (*Event, error) {
 	var seattleTeam string
 	for _, curr := range e.Embedded.Attractions {
-		if team := seattleTeamAttractionIDs[curr.Id]; team != "" {
+		if team := tm.attractionIDs[curr.Id]; team != "" {
 			seattleTeam = team
 			break
 		}
@@ -119,10 +121,13 @@ func buildInternalEvent(e TicketmasterEvent, venueName string) (*Event, error) {
 	// this code assumes there are only two "attractions" ... that should be good for any sports match?
 	var opponentTeam string
 	for _, curr := range e.Embedded.Attractions {
-		if team := seattleTeamAttractionIDs[curr.Id]; team == "" {
+		if team := tm.attractionIDs[curr.Id]; team == "" {
 			opponentTeam = curr.Name
 		}
 	}
+
+	// for some reason, some teams have an " (SS)" suffix, so remove that
+	opponentTeam = strings.TrimSuffix(opponentTeam, " (SS)")
 
 	if opponentTeam == "" {
 		log.Warn().Str("venue_name", venueName).Msg("could not find opponent attraction ID")
@@ -190,11 +195,13 @@ func (tm *ticketmasterFetcher) getEventsForVenueID(ctx context.Context, venueNam
 
 		log.Info().Str("venue_name", venueName).Str("event_name", e.Name).Msg("found event from ticketmaster")
 
-		event, err := buildInternalEvent(e, venueName)
+		event, err := tm.buildInternalEvent(e, venueName)
 		if err != nil {
 			continue
 		}
-		eventTime := e.Dates.Start.DateTime.In(SeattleTimeZone)
+
+		// TODO: clean this up
+		eventTime := time.Unix(event.RawTime, 0)
 		if isDay(SeattleToday, eventTime) {
 			today = append(today, event)
 		} else if isDay(SeattleTomorrow, eventTime) {
@@ -216,7 +223,7 @@ func (tm *ticketmasterFetcher) GetEvents(ctx context.Context) ([]*Event, []*Even
 	var todayEvents []*Event
 	var tomorrowEvents []*Event
 
-	for venueName, venueID := range seattleVenueMap {
+	for venueName, venueID := range tm.venues {
 		var foundToday []*Event
 		var foundTomorrow []*Event
 		foundToday, foundTomorrow, err = tm.getEventsForVenueID(ctx, venueName, venueID, start, end)
