@@ -9,9 +9,10 @@
 #tomorrow {
     font-size: 40px;
     max-width: fit-content;
+    margin-left: auto;
     margin-right: auto;
-    margin-bottom: 30px;
     padding-top: 10%;
+    padding-bottom: 30px;
 }
 
 .date-footer {
