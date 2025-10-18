@@ -7,11 +7,11 @@ import (
 	"github.com/lthummus/seattle-sports-today/internal/events"
 )
 
-func renderEventSlice(x []*events.Event) []map[string]string {
-	renderableEvents := make([]map[string]string, len(x))
+func renderEventSlice(x []*events.Event) []map[string]any {
+	renderableEvents := make([]map[string]any, len(x))
 
 	for i, curr := range x {
-		e := map[string]string{}
+		e := map[string]any{}
 		e["description"] = curr.String()
 		if curr.Venue != "" {
 			e["venue"] = curr.Venue
@@ -24,6 +24,9 @@ func renderEventSlice(x []*events.Event) []map[string]string {
 		}
 		if curr.LocalTime != "" {
 			e["local_time"] = curr.LocalTime
+		}
+		if curr.RawTime != 0 {
+			e["unix_time"] = curr.RawTime
 		}
 		renderableEvents[i] = e
 	}
