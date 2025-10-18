@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -27,8 +28,8 @@ func init() {
 	log.Info().Str("table_name", os.Getenv(tableEnvironmentVariableName)).Msg("initialized dynamodb client")
 }
 
-func GetSpecialEvents(ctx context.Context) ([]*Event, error) {
-	formattedDate := SeattleCurrentTime.Format("2006-01-02")
+func specialEventsForDate(ctx context.Context, t time.Time) ([]*Event, error) {
+	formattedDate := t.Format("2006-01-02")
 
 	res, err := dynamoClient.Query(ctx, &dynamodb.QueryInput{
 		TableName:              aws.String(os.Getenv(tableEnvironmentVariableName)),
@@ -41,7 +42,7 @@ func GetSpecialEvents(ctx context.Context) ([]*Event, error) {
 		},
 	})
 	if err != nil {
-		return nil, fmt.Errorf("events: GetSpecialEvents: could not query dynamo: %w", err)
+		return nil, fmt.Errorf("events: getSpecialEvents: could not query dynamo: %w", err)
 	}
 
 	var items []struct {
@@ -56,7 +57,7 @@ func GetSpecialEvents(ctx context.Context) ([]*Event, error) {
 	}
 	err = attributevalue.UnmarshalListOfMaps(res.Items, &items)
 	if err != nil {
-		return nil, fmt.Errorf("events: GetSpecialEvents: could not unmarshal dynamo items: %w", err)
+		return nil, fmt.Errorf("events: getSpecialEvents: could not unmarshal dynamo items: %w", err)
 	}
 
 	ret := make([]*Event, len(items))
@@ -72,4 +73,17 @@ func GetSpecialEvents(ctx context.Context) ([]*Event, error) {
 	}
 
 	return ret, nil
+}
+
+func getSpecialEvents(ctx context.Context) ([]*Event, []*Event, error) {
+	todayEvents, err := specialEventsForDate(ctx, SeattleToday)
+	if err != nil {
+		return nil, nil, err
+	}
+	tomorrowEvents, err := specialEventsForDate(ctx, SeattleTomorrow)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return todayEvents, tomorrowEvents, nil
 }

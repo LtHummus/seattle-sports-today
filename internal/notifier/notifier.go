@@ -11,7 +11,7 @@ import (
 	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/rs/zerolog/log"
 
-	"github.com/lthummus/seattle-sports-today/secrets"
+	"github.com/lthummus/seattle-sports-today/internal/secrets"
 )
 
 const envVarNotificationSecretName = "NOTIFIER_SECRET_NAME"
@@ -39,7 +39,7 @@ var httpClient = xray.Client(http.DefaultClient)
 
 func Notify(ctx context.Context, text string, priority Priority, emoji Emoji) error {
 	secretARN := os.Getenv(envVarNotificationSecretName)
-	
+
 	notifierKey, err := secrets.GetSecretString(ctx, secretARN)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("https://ntfy.sh/%s", notifierKey), strings.NewReader(text))
