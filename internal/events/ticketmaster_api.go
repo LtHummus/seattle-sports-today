@@ -156,6 +156,13 @@ func (tm *ticketmasterFetcher) getEventsForVenueID(ctx context.Context, venueNam
 	q.Add("endDateTime", endDate.Format(time.RFC3339))
 	req.URL.RawQuery = q.Encode()
 
+	log.
+		Info().
+		Str("venue_id", venueID).
+		Str("start_date_time", startDate.Format(time.RFC3339)).
+		Str("end_date_time", endDate.Format(time.RFC3339)).
+		Msg("querying ticketmaster api")
+
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, nil, err
@@ -201,7 +208,7 @@ func (tm *ticketmasterFetcher) getEventsForVenueID(ctx context.Context, venueNam
 		}
 
 		// TODO: clean this up
-		eventTime := time.Unix(event.RawTime, 0)
+		eventTime := time.Unix(event.RawTime, 0).In(SeattleTimeZone)
 		if isDay(SeattleToday, eventTime) {
 			today = append(today, event)
 		} else if isDay(SeattleTomorrow, eventTime) {
