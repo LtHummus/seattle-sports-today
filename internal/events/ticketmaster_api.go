@@ -37,7 +37,7 @@ var seattleTeamAttractionIDs = map[string]string{
 	"K8vZ917G8RV": "Seattle Sounders",
 	"K8vZ9178Dm7": "Seattle Reign",
 	"K8vZ9171xo0": "Seattle Storm",
-	"K8vZ917ri3V": "PWHL Seattle",
+	"K8vZ917ri3V": "Seattle Torrent",
 }
 
 type ticketmasterFetcher struct {
