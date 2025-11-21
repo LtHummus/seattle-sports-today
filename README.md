@@ -9,6 +9,7 @@ Powers https://isthereaseattlehomegametoday.com/ to let the public know if there
 | Seattle Mariners                          | MLB        | T-Mobile Park         |
 | Seattle Sounders                          | MLS        | Lumen Field           |
 | Seattle Kraken                            | NHL        | Climate Pledge Arena  |
+| Seattle Torrent                           | PWHL       | Climate Pledge Arena  |
 | Seattle Seahawks                          | NFL        | Lumen Field           |
 | Seattle Storm                             | WNBA       | Climate Pledge Arena  |
 | Seattle Reign                             | NWSL       | Lumen Field           |
