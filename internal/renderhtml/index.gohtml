@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/pico.min.css">
     <link rel="stylesheet" href="/seattle-sports-today.css">
@@ -10,30 +10,32 @@
     <title>Is there a Seattle home game today?</title>
 </head>
 <body>
-<header class="container">
+    <header class="container">
 
-    <h1 id="answer">{{ if .Events }}YES{{ else }}NO{{ end }}</h1>
-</header>
-<main class="container">
-    <div class="grid">
-        {{ range .Events}}
-            <div>
-                <p>{{ . }}</p>
-            </div>
-        {{ end }}
-    </div>
-    <div id="tomorrow">
-        <strong>{{ .TomorrowHeading }}</strong>
-    </div>
-    <div class="grid">
-        {{ range .Tomorrow }}
-            <div><p>{{ . }}</p></div>
-        {{ end }}
-    </div>
-    <div class="date-footer">
-        {{ .FullGeneratedDate }}
-        Generated on {{ .GeneratedDate }}
-    </div>
-</main>
+        <h1 id="answer">{{ if .Events }}YES{{ else }}NO{{ end }}</h1>
+    </header>
+    <main class="container">
+        <div class="grid">
+            {{ range .Events}}
+                <div>
+                    <p>{{ . }}</p>
+                </div>
+            {{ end }}
+        </div>
+        <div id="tomorrow">
+            <strong>{{ .TomorrowHeading }}</strong>
+        </div>
+        <div class="grid">
+            {{ range .Tomorrow }}
+                <div><p>{{ . }}</p></div>
+            {{ end }}
+        </div>
+    </main>
+    <footer>
+        <div class="date-footer">
+            {{ .FullGeneratedDate }}
+            Generated on {{ .GeneratedDate }}
+        </div>
+    </footer>
 </body>
 </html>

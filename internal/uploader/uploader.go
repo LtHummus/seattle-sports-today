@@ -72,13 +72,20 @@ func Upload(ctx context.Context, htmlContents []byte, jsonContents []byte) error
 
 	distributionID := os.Getenv(envVarDistributionID)
 	log.Info().Str("distribution_id", distributionID).Msg("invalidating CF cache")
+
+	pathList := []string{"/index.html", "/todays_events.json"}
+	if os.Getenv("INVALIDATE_ALL") == "true" {
+		log.Info().Msg("invalidating everything")
+		pathList = []string{"/*"}
+	}
+
 	_, err = cfClient.CreateInvalidation(ctx, &cloudfront.CreateInvalidationInput{
 		DistributionId: aws.String(distributionID),
 		InvalidationBatch: &types.InvalidationBatch{
 			CallerReference: aws.String(time.Now().Format(time.RFC3339)),
 			Paths: &types.Paths{
-				Items:    []string{"/index.html", "/todays_events.json"},
-				Quantity: aws.Int32(2),
+				Items:    pathList,
+				Quantity: aws.Int32(int32(len(pathList))),
 			},
 		},
 	})
