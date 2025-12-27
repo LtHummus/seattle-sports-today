@@ -20,6 +20,7 @@ const (
 	TicketmasterApiKeySecretName = "TICKETMASTER_API_KEY_SECRET_NAME"
 
 	SubTypeIDTouringFacility = "KZFzBErXgnZfZ7vAvv"
+	SegmentTypeSports        = "KZFzniwnSyZfZ7v7nE"
 )
 
 // seattleVenueMap is a map of venues to ticketmaster's internal venue ID for venues we should look at
@@ -74,6 +75,11 @@ func eventShouldBeIgnored(e *TicketmasterEvent) bool {
 
 	if len(e.Embedded.Attractions) == 0 {
 		log.Info().Str("name", e.Name).Str("venue_name", venueName).Msg("no attractions")
+		return true
+	}
+
+	if e.Classifications[0].Segment.Id == SegmentTypeSports && e.Promoter.Id == "" {
+		log.Info().Str("name", e.Name).Str("venue_name", venueName).Msg("skipping due to missing promoter")
 		return true
 	}
 
