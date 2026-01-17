@@ -17,12 +17,10 @@ import (
 	"github.com/lthummus/seattle-sports-today/internal/secrets"
 )
 
-type eventFetcher func(ctx context.Context) ([]*Event, []*Event, error)
+type eventFetcher func(ctx context.Context, today time.Time, tomorrow time.Time) ([]*Event, []*Event, error)
 
 var (
 	SeattleTimeZone *time.Location
-	SeattleToday    time.Time
-	SeattleTomorrow time.Time
 
 	httpClient = xray.Client(http.DefaultClient)
 )
@@ -38,10 +36,10 @@ func init() {
 	}
 
 	SeattleTimeZone = stz
-	SeattleToday = time.Now().In(SeattleTimeZone)
-	SeattleTomorrow = SeattleToday.AddDate(0, 0, 1)
+	//SeattleToday = time.Now().In(SeattleTimeZone)
+	//SeattleTomorrow = SeattleToday.AddDate(0, 0, 1)
 
-	log.Info().Str("current_seattle_time", SeattleToday.Format(time.RFC850)).Str("seattle_time_zone", SeattleTimeZone.String()).Msg("initialized time")
+	log.Info().Str("seattle_time_zone", SeattleTimeZone.String()).Msg("initialized time")
 }
 
 func isDay(target time.Time, specimen time.Time) bool {
@@ -72,8 +70,8 @@ func (e *Event) String() string {
 	return fmt.Sprintf("%s are playing against the %s at %s. The game starts at %s.", e.TeamName, e.Opponent, e.Venue, e.LocalTime)
 }
 
-func fetchAndAppendEvents(ctx context.Context, fetcher eventFetcher, res *EventResults, eventLock *sync.Mutex) error {
-	today, tomorrow, e := fetcher(ctx)
+func fetchAndAppendEvents(ctx context.Context, fetcher eventFetcher, res *EventResults, eventLock *sync.Mutex, todayDate time.Time, tomorrowDate time.Time) error {
+	today, tomorrow, e := fetcher(ctx, todayDate, tomorrowDate)
 	if e != nil {
 		return e
 	}
@@ -88,7 +86,7 @@ func fetchAndAppendEvents(ctx context.Context, fetcher eventFetcher, res *EventR
 	return nil
 }
 
-func GetTodayAndTomorrowGames(ctx context.Context) (*EventResults, error) {
+func GetTodayAndTomorrowGames(ctx context.Context, seattleToday time.Time, seattleTomorrow time.Time) (*EventResults, error) {
 	eg, ctx := errgroup.WithContext(ctx)
 
 	res := &EventResults{}
@@ -114,15 +112,15 @@ func GetTodayAndTomorrowGames(ctx context.Context) (*EventResults, error) {
 			baseURL:       TicketmasterDefaultBaseURL,
 		}
 
-		return fetchAndAppendEvents(ctx, tm.GetEvents, res, &eventLock)
+		return fetchAndAppendEvents(ctx, tm.GetEvents, res, &eventLock, seattleToday, seattleTomorrow)
 	})
 
 	eg.Go(func() error {
-		return fetchAndAppendEvents(ctx, getSpecialEvents, res, &eventLock)
+		return fetchAndAppendEvents(ctx, getSpecialEvents, res, &eventLock, seattleToday, seattleTomorrow)
 	})
 
 	eg.Go(func() error {
-		return fetchAndAppendEvents(ctx, GetUWGames, res, &eventLock)
+		return fetchAndAppendEvents(ctx, GetUWGames, res, &eventLock, seattleToday, seattleTomorrow)
 	})
 
 	err := eg.Wait()

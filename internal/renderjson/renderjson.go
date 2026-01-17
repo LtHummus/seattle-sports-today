@@ -3,6 +3,7 @@ package renderjson
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/lthummus/seattle-sports-today/internal/events"
 )
@@ -34,9 +35,9 @@ func renderEventSlice(x []*events.Event) []map[string]any {
 	return renderableEvents
 }
 
-func RenderJSON(results *events.EventResults) ([]byte, error) {
+func RenderJSON(results *events.EventResults, seattleToday time.Time) ([]byte, error) {
 	data := map[string]any{
-		"date":            events.SeattleToday.Format("2006-01-02"),
+		"date":            seattleToday.Format("2006-01-02"),
 		"events":          renderEventSlice(results.TodayEvent),
 		"tomorrow_events": renderEventSlice(results.TomorrowEvents),
 	}

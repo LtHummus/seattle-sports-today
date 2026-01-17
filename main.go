@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"slices"
+	"time"
 
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/rs/zerolog"
@@ -19,15 +20,40 @@ import (
 	"github.com/lthummus/seattle-sports-today/internal/uploader"
 )
 
-func eventHandler(ctx context.Context) error {
+type CustomEvent struct {
+	Today  string `json:"today"`
+	Upload bool   `json:"upload"`
+}
+
+func eventHandler(ctx context.Context, event CustomEvent) error {
 	defer func() {
 		if err := recover(); err != nil {
 			_ = notifier.Notify(context.Background(), fmt.Sprintf("ERROR: uncaught panic: %v", err), notifier.PriorityHigh, notifier.EmojiSiren)
 		}
 	}()
 
-	log.Info().Msg("getting today's games")
-	eventResults, err := events.GetTodayAndTomorrowGames(ctx)
+	var triggeredByEventBridge bool
+	var seattleToday time.Time
+	var seattleTomorrow time.Time
+
+	if event.Today == "" {
+		// no event data, assume it was triggered by event bridge
+		log.Info().Msg("no custom event data; assuming event bridge")
+		triggeredByEventBridge = true
+
+		seattleToday = time.Now().In(events.SeattleTimeZone)
+	} else {
+		var err error
+		seattleToday, err = time.ParseInLocation("2006-04-02", event.Today, events.SeattleTimeZone)
+		if err != nil {
+			return fmt.Errorf("invalid input date format: %s: %w", event.Today, err)
+		}
+	}
+
+	seattleTomorrow = seattleToday.AddDate(0, 0, 1)
+
+	log.Info().Bool("triggered_by_event_bridge", triggeredByEventBridge).Time("seattle_today", seattleToday).Time("seattle_tomorrow", seattleTomorrow).Msg("getting today's games")
+	eventResults, err := events.GetTodayAndTomorrowGames(ctx, seattleToday, seattleTomorrow)
 	if err != nil {
 		_ = notifier.Notify(ctx, fmt.Sprintf("ERROR: could not get today's games: %s", err.Error()), notifier.PriorityHigh, notifier.EmojiSiren)
 		return err
@@ -50,13 +76,13 @@ func eventHandler(ctx context.Context) error {
 	}
 
 	log.Info().Msg("rendering page")
-	page, err := renderhtml.RenderPage(eventResults)
+	page, err := renderhtml.RenderPage(eventResults, seattleToday)
 	if err != nil {
 		_ = notifier.Notify(ctx, fmt.Sprintf("ERROR: could not render page: %s", err.Error()), notifier.PriorityHigh, notifier.EmojiSiren)
 		return err
 	}
 
-	jsonData, err := renderjson.RenderJSON(eventResults)
+	jsonData, err := renderjson.RenderJSON(eventResults, seattleToday)
 	if err != nil {
 		_ = notifier.Notify(ctx, fmt.Sprintf("ERROR: could not render JSON: %s", err.Error()), notifier.PriorityHigh, notifier.EmojiSiren)
 		return err
@@ -64,7 +90,7 @@ func eventHandler(ctx context.Context) error {
 
 	log.Info().Msg("render complete")
 
-	if os.Getenv("_HANDLER") != "" || os.Getenv("UPLOAD_ANYWAY") == "true" {
+	if os.Getenv("_HANDLER") != "" || os.Getenv("UPLOAD_ANYWAY") == "true" || (!triggeredByEventBridge && event.Upload) {
 		log.Info().Msg("beginning upload")
 		err = uploader.Upload(ctx, page, jsonData)
 		if err != nil {
@@ -80,7 +106,13 @@ func eventHandler(ctx context.Context) error {
 
 	log.Info().Msg("all in a day's work...")
 
-	err = notifier.Notify(ctx, fmt.Sprintf("Everything worked! Found %d game(s) today and %d game(s) tomorrow", len(eventResults.TodayEvent), len(eventResults.TomorrowEvents)), notifier.PriorityDefault, notifier.EmojiParty)
+	notificationMessage := fmt.Sprintf("Everything worked! Found %d game(s) for %s and %d game(s) for %s",
+		len(eventResults.TodayEvent),
+		seattleToday.Format("2006-04-02"),
+		len(eventResults.TomorrowEvents),
+		seattleTomorrow.Format("2006-04-02"))
+
+	err = notifier.Notify(ctx, notificationMessage, notifier.PriorityDefault, notifier.EmojiParty)
 	if err != nil {
 		log.Warn().Err(err).Msg("error sending notification")
 	}
@@ -100,7 +132,7 @@ func main() {
 		lambda.Start(eventHandler)
 	} else {
 		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
-		err := eventHandler(context.Background())
+		err := eventHandler(context.Background(), CustomEvent{})
 		if err != nil {
 			log.Error().Err(err).Msg("error running handler")
 		}
