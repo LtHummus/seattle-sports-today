@@ -63,6 +63,9 @@ func beginningOfDay(t time.Time) time.Time {
 }
 
 func eventShouldBeIgnored(e *TicketmasterEvent) bool {
+	// TODO: some of this logic can be moved in to the ticketmaster query itself by using `-` prefixes to indicate
+	//       that we don't want these segments or classifications or whatever
+
 	venueName := ""
 	if len(e.Embedded.Venues) != 0 {
 		venueName = e.Embedded.Venues[0].Name
