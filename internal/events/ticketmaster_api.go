@@ -42,6 +42,14 @@ var seattleTeamAttractionIDs = map[string]string{
 	"K8vZ917ri3V": "Seattle Torrent",
 }
 
+var attractionsToIgnore = map[string]string{
+	"K8vZ9175lB0": "Mariners Fan Fest",
+}
+
+var classificationTypesToIgnore = map[string]string{
+	"KZAyXgnZfZ7v7nJ": "Upsell",
+}
+
 type ticketmasterFetcher struct {
 	venues        map[string]string
 	attractionIDs map[string]string
@@ -67,6 +75,7 @@ func eventShouldBeIgnored(e *TicketmasterEvent) bool {
 
 	if e.Dates.Start.DateTBD || e.Dates.Start.DateTBA {
 		log.Info().Str("name", e.Name).Str("venue_name", venueName).Msg("time is TBA")
+		return true
 	}
 
 	if e.Classifications == nil || len(e.Classifications) == 0 {
@@ -79,10 +88,23 @@ func eventShouldBeIgnored(e *TicketmasterEvent) bool {
 		return true
 	}
 
-	// TODO: can this be exactly 2 attractions?
-	if len(e.Embedded.Attractions) < 2 {
+	if e.Classifications[0].Segment.Id == SegmentTypeSports && len(e.Embedded.Attractions) < 2 {
 		log.Info().Str("name", e.Name).Str("venue_name", venueName).Int("attraction_count", len(e.Embedded.Attractions)).Msg("not enough attractions")
 		return true
+	}
+
+	for _, curr := range e.Classifications {
+		if ignoredClassification := classificationTypesToIgnore[curr.Type.Id]; ignoredClassification != "" {
+			log.Info().Str("name", e.Name).Str("venue_name", venueName).Str("classification", ignoredClassification).Msg("ignoring classification")
+			return true
+		}
+	}
+
+	for _, curr := range e.Embedded.Attractions {
+		if attraction := attractionsToIgnore[curr.Id]; attraction != "" {
+			log.Info().Str("name", e.Name).Str("ignored_attraction", attraction).Msg("ignored attraction")
+			return true
+		}
 	}
 
 	if e.Classifications[0].SubType.Id == SubTypeIDTouringFacility {
