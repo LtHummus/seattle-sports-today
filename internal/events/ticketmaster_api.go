@@ -79,10 +79,11 @@ func eventShouldBeIgnored(e *TicketmasterEvent) bool {
 		return true
 	}
 
-	//if e.Classifications[0].Segment.Id == SegmentTypeSports && e.Promoter.Id == "" {
-	//	log.Info().Str("name", e.Name).Str("venue_name", venueName).Msg("skipping due to missing promoter")
-	//	return true
-	//}
+	// TODO: can this be exactly 2 attractions?
+	if len(e.Embedded.Attractions) < 2 {
+		log.Info().Str("name", e.Name).Str("venue_name", venueName).Int("attraction_count", len(e.Embedded.Attractions)).Msg("not enough attractions")
+		return true
+	}
 
 	if e.Classifications[0].SubType.Id == SubTypeIDTouringFacility {
 		// we don't want to list arena tours (as cool as they are)

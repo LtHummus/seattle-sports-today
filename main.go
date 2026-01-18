@@ -134,7 +134,11 @@ func main() {
 		lambda.Start(eventHandler)
 	} else {
 		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
-		err := eventHandler(context.Background(), CustomEvent{})
+		ce := CustomEvent{}
+		if todayDateString := os.Getenv("TEST_DATE"); todayDateString != "" {
+			ce.Today = todayDateString
+		}
+		err := eventHandler(context.Background(), ce)
 		if err != nil {
 			log.Error().Err(err).Msg("error running handler")
 		}
