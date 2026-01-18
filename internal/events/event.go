@@ -36,8 +36,6 @@ func init() {
 	}
 
 	SeattleTimeZone = stz
-	//SeattleToday = time.Now().In(SeattleTimeZone)
-	//SeattleTomorrow = SeattleToday.AddDate(0, 0, 1)
 
 	log.Info().Str("seattle_time_zone", SeattleTimeZone.String()).Msg("initialized time")
 }
