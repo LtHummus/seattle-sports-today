@@ -86,7 +86,7 @@ type espnTeamResponse struct {
 	} `json:"team"`
 }
 
-func queryESPNAndAdd(ctx context.Context, url string, teamName string, venue string, today *[]*Event, tomorrow *[]*Event) error {
+func queryESPNAndAdd(ctx context.Context, url string, teamName string, venue string, today *[]*Event, tomorrow *[]*Event, seattleToday time.Time, seattleTomorrow time.Time) error {
 	log.Info().Str("seattle_team", teamName).Msg("querying espn for team info")
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -142,7 +142,7 @@ func queryESPNAndAdd(ctx context.Context, url string, teamName string, venue str
 		seattleStart := gameTime.In(SeattleTimeZone)
 
 		if competition.Venue.FullName == venue {
-			if isDay(SeattleToday, seattleStart) {
+			if isDay(seattleToday, seattleStart) {
 				log.Info().Str("seattle_team", teamName).Str("opponent", awayTeam.Team.DisplayName).Msg("found game for today")
 				*today = append(*today, &Event{
 					TeamName:  teamName,
@@ -151,7 +151,7 @@ func queryESPNAndAdd(ctx context.Context, url string, teamName string, venue str
 					Opponent:  awayTeam.Team.DisplayName,
 					RawTime:   gameTime.Unix(),
 				})
-			} else if isDay(SeattleTomorrow, seattleStart) {
+			} else if isDay(seattleTomorrow, seattleStart) {
 				log.Info().Str("seattle_team", teamName).Str("opponent", awayTeam.Team.DisplayName).Msg("found game for tomorrow")
 				*tomorrow = append(*tomorrow, &Event{
 					TeamName:  teamName,
@@ -167,21 +167,21 @@ func queryESPNAndAdd(ctx context.Context, url string, teamName string, venue str
 	return nil
 }
 
-func GetUWGames(ctx context.Context) ([]*Event, []*Event, error) {
+func GetUWGames(ctx context.Context, seattleToday time.Time, seattleTomorrow time.Time) ([]*Event, []*Event, error) {
 	var today []*Event
 	var tomorrow []*Event
 
-	err := queryESPNAndAdd(ctx, huskiesFootballURL, huskiesFootballName, huskyStadium, &today, &tomorrow)
+	err := queryESPNAndAdd(ctx, huskiesFootballURL, huskiesFootballName, huskyStadium, &today, &tomorrow, seattleToday, seattleTomorrow)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	err = queryESPNAndAdd(ctx, huskiesMensBasketballURL, huskiesMensBasketballName, alaskaAirlinesArena, &today, &tomorrow)
+	err = queryESPNAndAdd(ctx, huskiesMensBasketballURL, huskiesMensBasketballName, alaskaAirlinesArena, &today, &tomorrow, seattleToday, seattleTomorrow)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	err = queryESPNAndAdd(ctx, huskiesWomensBasketballURL, huskiesWomensBasketballName, alaskaAirlinesArena, &today, &tomorrow)
+	err = queryESPNAndAdd(ctx, huskiesWomensBasketballURL, huskiesWomensBasketballName, alaskaAirlinesArena, &today, &tomorrow, seattleToday, seattleTomorrow)
 	if err != nil {
 		return nil, nil, err
 	}

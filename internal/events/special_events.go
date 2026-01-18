@@ -75,12 +75,12 @@ func specialEventsForDate(ctx context.Context, t time.Time) ([]*Event, error) {
 	return ret, nil
 }
 
-func getSpecialEvents(ctx context.Context) ([]*Event, []*Event, error) {
-	todayEvents, err := specialEventsForDate(ctx, SeattleToday)
+func getSpecialEvents(ctx context.Context, today time.Time, tomorrow time.Time) ([]*Event, []*Event, error) {
+	todayEvents, err := specialEventsForDate(ctx, today)
 	if err != nil {
 		return nil, nil, err
 	}
-	tomorrowEvents, err := specialEventsForDate(ctx, SeattleTomorrow)
+	tomorrowEvents, err := specialEventsForDate(ctx, tomorrow)
 	if err != nil {
 		return nil, nil, err
 	}

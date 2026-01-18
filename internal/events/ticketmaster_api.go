@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -78,10 +79,10 @@ func eventShouldBeIgnored(e *TicketmasterEvent) bool {
 		return true
 	}
 
-	if e.Classifications[0].Segment.Id == SegmentTypeSports && e.Promoter.Id == "" {
-		log.Info().Str("name", e.Name).Str("venue_name", venueName).Msg("skipping due to missing promoter")
-		return true
-	}
+	//if e.Classifications[0].Segment.Id == SegmentTypeSports && e.Promoter.Id == "" {
+	//	log.Info().Str("name", e.Name).Str("venue_name", venueName).Msg("skipping due to missing promoter")
+	//	return true
+	//}
 
 	if e.Classifications[0].SubType.Id == SubTypeIDTouringFacility {
 		// we don't want to list arena tours (as cool as they are)
@@ -149,7 +150,7 @@ func (tm *ticketmasterFetcher) buildInternalEvent(e TicketmasterEvent, venueName
 	}, nil
 }
 
-func (tm *ticketmasterFetcher) getEventsForVenueID(ctx context.Context, venueName string, venueID string, startDate time.Time, endDate time.Time) ([]*Event, []*Event, error) {
+func (tm *ticketmasterFetcher) getEventsForVenueID(ctx context.Context, venueName string, venueID string, startDate time.Time, endDate time.Time, seattleToday time.Time, seattleTomorrow time.Time) ([]*Event, []*Event, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf(TicketmasterEventSearchAPI, tm.baseURL), nil)
 	if err != nil {
 		return nil, nil, err
@@ -186,9 +187,19 @@ func (tm *ticketmasterFetcher) getEventsForVenueID(ctx context.Context, venueNam
 	}
 
 	remainingRequestCount := resp.Header.Get("Rate-Limit-Available")
-	rateLimitResetTime := resp.Header.Get("Rate-Limit-Reset")
+	rateLimitResetTimeUnix := resp.Header.Get("Rate-Limit-Reset")
 
-	log.Info().Str("venue_name", venueName).Str("remaining_requests", remainingRequestCount).Str("rate_limit_reset_time", rateLimitResetTime).Msg("completed ticketmaster API request")
+	rateLimitResetTimeInt, err := strconv.ParseInt(rateLimitResetTimeUnix, 10, 64)
+	var rateLimitResetTime time.Time
+	if err != nil {
+		log.Warn().Err(err).Str("rate_limit_reset", rateLimitResetTimeUnix).Msg("could not parse reset time from ticketmaster")
+	} else {
+		rateLimitResetTime = time.UnixMilli(rateLimitResetTimeInt)
+	}
+
+	timeUntilReset := rateLimitResetTime.Sub(time.Now())
+
+	log.Info().Str("venue_name", venueName).Str("remaining_requests", remainingRequestCount).Float64("rate_limit_resets_hours", timeUntilReset.Hours()).Msg("completed ticketmaster API request")
 
 	var payload TicketmasterEventSearchResponse
 	err = json.NewDecoder(resp.Body).Decode(&payload)
@@ -215,9 +226,9 @@ func (tm *ticketmasterFetcher) getEventsForVenueID(ctx context.Context, venueNam
 
 		// TODO: clean this up
 		eventTime := time.Unix(event.RawTime, 0).In(SeattleTimeZone)
-		if isDay(SeattleToday, eventTime) {
+		if isDay(seattleToday, eventTime) {
 			today = append(today, event)
-		} else if isDay(SeattleTomorrow, eventTime) {
+		} else if isDay(seattleTomorrow, eventTime) {
 			tomorrow = append(tomorrow, event)
 		}
 	}
@@ -226,11 +237,10 @@ func (tm *ticketmasterFetcher) getEventsForVenueID(ctx context.Context, venueNam
 
 }
 
-func (tm *ticketmasterFetcher) GetEvents(ctx context.Context) ([]*Event, []*Event, error) {
+func (tm *ticketmasterFetcher) GetEvents(ctx context.Context, seattleToday time.Time, seattleTomorrow time.Time) ([]*Event, []*Event, error) {
 	var err error
-	today := time.Now().In(SeattleTimeZone)
 
-	start := beginningOfDay(today)
+	start := beginningOfDay(seattleToday)
 	end := start.AddDate(0, 0, 2)
 
 	var todayEvents []*Event
@@ -239,7 +249,7 @@ func (tm *ticketmasterFetcher) GetEvents(ctx context.Context) ([]*Event, []*Even
 	for venueName, venueID := range tm.venues {
 		var foundToday []*Event
 		var foundTomorrow []*Event
-		foundToday, foundTomorrow, err = tm.getEventsForVenueID(ctx, venueName, venueID, start, end)
+		foundToday, foundTomorrow, err = tm.getEventsForVenueID(ctx, venueName, venueID, start, end, seattleToday, seattleTomorrow)
 		if err != nil {
 			return nil, nil, fmt.Errorf("events: getTicketmasterEvents: could not query for ticketmaster data: %w", err)
 		}

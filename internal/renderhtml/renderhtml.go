@@ -48,15 +48,15 @@ func tomorrowHeader(gamesToday, gamesTomorrow bool) string {
 	}
 }
 
-func RenderPage(results *events.EventResults) ([]byte, error) {
-	generatedDateString := events.SeattleToday.Format("Monday Jan _2, 2006")
+func RenderPage(results *events.EventResults, seattleToday time.Time) ([]byte, error) {
+	generatedDateString := seattleToday.Format("Monday Jan _2, 2006")
 	buf := bytes.NewBuffer(nil)
 
 	// we have to do things this way because by default the Go HTML templating system will strip out comments. We can force it not
 	// to do that by passing this as a template.HTML already so the templating system will plonk it in there no questions asked.
 
 	//#nosec G203 -- We generate this with no involvement from the end user
-	generatedTimestamp := template.HTML(fmt.Sprintf("<!-- Generated at: %s -->", events.SeattleToday.Format(time.RFC1123)))
+	generatedTimestamp := template.HTML(fmt.Sprintf("<!-- Generated at: %s -->", seattleToday.Format(time.RFC1123)))
 
 	err := pageTemplate.Execute(buf, &templateParams{
 		Events:            results.TodayEvent,
