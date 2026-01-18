@@ -110,9 +110,9 @@ func eventHandler(ctx context.Context, event CustomEvent) error {
 
 	notificationMessage := fmt.Sprintf("Everything worked! Found %d game(s) for %s and %d game(s) for %s",
 		len(eventResults.TodayEvent),
-		seattleToday.Format("2006-04-02"),
+		seattleToday.Format("2006-01-02"),
 		len(eventResults.TomorrowEvents),
-		seattleTomorrow.Format("2006-04-02"))
+		seattleTomorrow.Format("2006-01-02"))
 
 	err = notifier.Notify(ctx, notificationMessage, notifier.PriorityDefault, notifier.EmojiParty)
 	if err != nil {
