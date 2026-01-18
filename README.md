@@ -31,3 +31,7 @@ tl;dr every day at 3:14 am, an AWS EventBridge event fires which triggers a Lamb
 
 Finally, we integrate with https://ntfy.sh/ so I get a little push notification on my phone every morning to make sure that everything is running. The notification reports how many games were found if everything worked, or an error if things did not.
 
+### Testing
+
+When running locally, there's a special escape hatch where you can run `main.go` as a binary. Assuming you've got all your environment variables set up (exercise left to the reader), it will pull all the data from APIs and then print out the rendered HTML to stdout. If you want to force the upload even when running locally, set `UPLOAD_ANYWAY` env var to `true`. You can also use `TEST_DATE` environment variable to set a date to test with `YYYY-MM-DD`
+
