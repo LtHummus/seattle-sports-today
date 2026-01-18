@@ -43,7 +43,7 @@ func eventHandler(ctx context.Context, event CustomEvent) error {
 		seattleToday = time.Now().In(events.SeattleTimeZone)
 	} else {
 		var err error
-		seattleToday, err = time.ParseInLocation("2006-04-02", event.Today, events.SeattleTimeZone)
+		seattleToday, err = time.ParseInLocation("2006-01-02", event.Today, events.SeattleTimeZone)
 		if err != nil {
 			return fmt.Errorf("invalid input date format: %s: %w", event.Today, err)
 		}
