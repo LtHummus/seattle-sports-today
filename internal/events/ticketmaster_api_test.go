@@ -2,8 +2,9 @@ package events
 
 import (
 	"context"
-	_ "embed"
+	"embed"
 	"encoding/json"
+	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -14,18 +15,12 @@ import (
 	"golang.org/x/time/rate"
 )
 
-//go:embed testdata/simple.json
-var sampleResponseText []byte
-
-//go:embed testdata/battle_of_sound_harlem_globetrotters.json
-var interestingSports []byte
-
-//go:embed testdata/ignore_these_events.json
-var ignoreTheseEvents []byte
+//go:embed testdata/*.json
+var testData embed.FS
 
 type test struct {
 	name          string
-	output        []byte
+	file          string
 	date          time.Time
 	checkToday    func(*testing.T, []*Event)
 	checkTomorrow func(*testing.T, []*Event)
@@ -34,9 +29,9 @@ type test struct {
 func TestTicketmasterFetcher_GetEvents(t *testing.T) {
 	tests := []test{
 		{
-			name:   "Basic test",
-			output: sampleResponseText,
-			date:   time.Date(2026, time.February, 14, 0, 0, 0, 0, SeattleTimeZone),
+			name: "Basic test",
+			file: "simple.json",
+			date: time.Date(2026, time.February, 14, 0, 0, 0, 0, SeattleTimeZone),
 			checkToday: func(t *testing.T, events []*Event) {
 				assert.Len(t, events, 1)
 				returnedEvent := events[0]
@@ -49,9 +44,9 @@ func TestTicketmasterFetcher_GetEvents(t *testing.T) {
 			},
 		},
 		{
-			name:   "Interesting sports",
-			output: interestingSports,
-			date:   time.Date(2026, time.January, 31, 0, 0, 0, 0, SeattleTimeZone),
+			name: "Interesting sports",
+			file: "battle_of_sound_harlem_globetrotters.json",
+			date: time.Date(2026, time.January, 31, 0, 0, 0, 0, SeattleTimeZone),
 			checkToday: func(t *testing.T, events []*Event) {
 				assert.Len(t, events, 1)
 
@@ -64,9 +59,20 @@ func TestTicketmasterFetcher_GetEvents(t *testing.T) {
 			},
 		},
 		{
-			name:   "Ignore these events",
-			output: ignoreTheseEvents,
-			date:   time.Date(2026, time.January, 18, 0, 0, 0, 0, SeattleTimeZone),
+			name: "Ignore these events",
+			file: "ignore_these_events.json",
+			date: time.Date(2026, time.January, 18, 0, 0, 0, 0, SeattleTimeZone),
+			checkToday: func(t *testing.T, events []*Event) {
+				assert.Empty(t, events)
+			},
+			checkTomorrow: func(t *testing.T, events []*Event) {
+				assert.Empty(t, events)
+			},
+		},
+		{
+			name: "Ignore fanfest",
+			file: "ignore_fanfest.json",
+			date: time.Date(2026, time.January, 31, 0, 0, 0, 0, SeattleTimeZone),
 			checkToday: func(t *testing.T, events []*Event) {
 				assert.Empty(t, events)
 			},
@@ -78,8 +84,14 @@ func TestTicketmasterFetcher_GetEvents(t *testing.T) {
 
 	for _, curr := range tests {
 		t.Run(curr.name, func(t *testing.T) {
+			subFS, err := fs.Sub(testData, "testdata")
+			require.NoError(t, err)
+
+			output, err := fs.ReadFile(subFS, curr.file)
+			require.NoError(t, err)
+
 			var sampleResponse TicketmasterEventSearchResponse
-			err := json.Unmarshal(sampleResponseText, &sampleResponse)
+			err = json.Unmarshal(output, &sampleResponse)
 			require.NoError(t, err)
 
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -105,7 +117,7 @@ func TestTicketmasterFetcher_GetEvents(t *testing.T) {
 				assert.Equal(t, curr.date.YearDay(), parsedStart.YearDay())
 				assert.Equal(t, curr.date.AddDate(0, 0, 2).YearDay(), parsedEnd.YearDay())
 
-				w.Write(curr.output)
+				w.Write(output)
 			}))
 			f := &ticketmasterFetcher{
 				venues: map[string]string{
