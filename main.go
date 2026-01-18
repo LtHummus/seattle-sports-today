@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	_ "embed"
 	"fmt"
 	"os"
 	"slices"
@@ -90,7 +89,10 @@ func eventHandler(ctx context.Context, event CustomEvent) error {
 
 	log.Info().Msg("render complete")
 
-	if os.Getenv("_HANDLER") != "" || os.Getenv("UPLOAD_ANYWAY") == "true" || (!triggeredByEventBridge && event.Upload) {
+	runningInDefaultMode := os.Getenv("_HANDLER") != "" && triggeredByEventBridge
+	shouldUploadAnyway := os.Getenv("UPLOAD_ANYWAY") == "true" || (!triggeredByEventBridge && event.Upload)
+
+	if runningInDefaultMode || shouldUploadAnyway {
 		log.Info().Msg("beginning upload")
 		err = uploader.Upload(ctx, page, jsonData)
 		if err != nil {
