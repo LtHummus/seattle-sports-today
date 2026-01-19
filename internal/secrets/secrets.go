@@ -2,6 +2,7 @@ package secrets
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -29,6 +30,11 @@ func GetSecretString(ctx context.Context, secretName string) (string, error) {
 	})
 	if err != nil {
 		return "", err
+	}
+
+	// Super-defensive to ensure we don't panic
+	if res.SecretString == nil {
+		return "", fmt.Errorf("secret %s is empty", secretName)
 	}
 
 	return *res.SecretString, nil
