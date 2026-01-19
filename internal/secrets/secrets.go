@@ -32,9 +32,8 @@ func GetSecretString(ctx context.Context, secretName string) (string, error) {
 		return "", err
 	}
 
-	// Super-defensive to ensure we don't panic
 	if res.SecretString == nil {
-		return "", fmt.Errorf("secret %s is empty", secretName)
+		return "", fmt.Errorf("secrets: GetSecretString: %s: secret is empty", secretName)
 	}
 
 	return *res.SecretString, nil
