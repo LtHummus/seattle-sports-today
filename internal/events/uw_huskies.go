@@ -22,6 +22,8 @@ const (
 
 	huskyStadium        = "Husky Stadium"
 	alaskaAirlinesArena = "Alaska Airlines Arena"
+
+	seattleTeamKey = "seattle_team"
 )
 
 type espnTeamResponse struct {
@@ -87,16 +89,16 @@ type espnTeamResponse struct {
 }
 
 func queryESPNAndAdd(ctx context.Context, url string, teamName string, venue string, today *[]*Event, tomorrow *[]*Event, seattleToday time.Time, seattleTomorrow time.Time) error {
-	log.Info().Str("seattle_team", teamName).Msg("querying espn for team info")
+	log.Info().Str(seattleTeamKey, teamName).Msg("querying espn for team info")
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		log.Error().Err(err).Str("seattle_team", teamName).Msg("could not build request")
+		log.Error().Err(err).Str(seattleTeamKey, teamName).Msg("could not build request")
 		return fmt.Errorf("events: queryESPN: could not build request: %w", err)
 	}
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		log.Error().Err(err).Str("seattle_team", teamName).Msg("could not contact ESPN API")
+		log.Error().Err(err).Str(seattleTeamKey, teamName).Msg("could not contact ESPN API")
 		return fmt.Errorf("events: queryESPN: could not contact API: %w", err)
 	}
 
@@ -105,27 +107,42 @@ func queryESPNAndAdd(ctx context.Context, url string, teamName string, venue str
 	if resp.StatusCode != http.StatusOK {
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			log.Error().Str("seattle_team", teamName).Err(err).Str("status_code", resp.Status).Msg("could not read error response body")
+			log.Error().Str(seattleTeamKey, teamName).Err(err).Str("status_code", resp.Status).Msg("could not read error response body")
 			return fmt.Errorf("events: queryESPN: could not read error body: %w", err)
 		}
-		log.Error().Str("seattle_team", teamName).Str("status_code", resp.Status).Msg("error retrieving data from ESPN")
+		log.Error().Str(seattleTeamKey, teamName).Str("status_code", resp.Status).Msg("error retrieving data from ESPN")
 		return fmt.Errorf("events: queryESPN: could not retireve data from ESPN: %s", string(body))
 	}
 
 	var payload espnTeamResponse
 	err = json.NewDecoder(resp.Body).Decode(&payload)
 	if err != nil {
-		log.Error().Err(err).Str("seattle_team", teamName).Msg("could not decode ESPN response")
+		log.Error().Err(err).Str(seattleTeamKey, teamName).Msg("could not decode ESPN response")
 		return fmt.Errorf("events: queryESPNTeam: could not decode ESPN response: %w", err)
 	}
 
 	if payload.Team.ID == "" || payload.Team.UID == "" {
-		log.Error().Str("seattle_team", teamName).Str("url", url).Msg("empty ESPN payload")
+		log.Error().Str(seattleTeamKey, teamName).Str("url", url).Msg("empty ESPN payload")
 		return fmt.Errorf("events: queryESPNTeam: empty response payload")
 	}
 
 	for _, curr := range payload.Team.NextEvent {
+		if len(curr.Competitions) <= 0 {
+			log.Warn().Str(seattleTeamKey, teamName).Msg("no games found")
+			continue
+		}
+
 		competition := curr.Competitions[0]
+
+		competitorLength := len(competition.Competitors)
+		if competitorLength < 2 {
+			log.Warn().Str(seattleTeamKey, teamName).Int("count", competitorLength).Msg("insufficient competitors")
+			continue
+		} else if competitorLength > 2 {
+			log.Warn().Str(seattleTeamKey, teamName).Int("count", competitorLength).Msg("unexpected number of competitors, only using first 2")
+			// Keep going, assume the first two are the home and away teams
+		}
+
 		homeTeam := competition.Competitors[0]
 		awayTeam := competition.Competitors[1]
 		if homeTeam.HomeAway != "home" {
@@ -135,7 +152,7 @@ func queryESPNAndAdd(ctx context.Context, url string, teamName string, venue str
 
 		gameTime, err := time.Parse("2006-01-02T15:04Z", competition.Date)
 		if err != nil {
-			log.Error().Err(err).Str("seattle_team", teamName).Msg("could not parse start time")
+			log.Error().Err(err).Str(seattleTeamKey, teamName).Msg("could not parse start time")
 			return fmt.Errorf("events: queryESPNTeam: could not parse start time: %w", err)
 		}
 
@@ -143,7 +160,7 @@ func queryESPNAndAdd(ctx context.Context, url string, teamName string, venue str
 
 		if competition.Venue.FullName == venue {
 			if isDay(seattleToday, seattleStart) {
-				log.Info().Str("seattle_team", teamName).Str("opponent", awayTeam.Team.DisplayName).Msg("found game for today")
+				log.Info().Str(seattleTeamKey, teamName).Str("opponent", awayTeam.Team.DisplayName).Msg("found game for today")
 				*today = append(*today, &Event{
 					TeamName:  teamName,
 					Venue:     competition.Venue.FullName,
@@ -152,7 +169,7 @@ func queryESPNAndAdd(ctx context.Context, url string, teamName string, venue str
 					RawTime:   gameTime.Unix(),
 				})
 			} else if isDay(seattleTomorrow, seattleStart) {
-				log.Info().Str("seattle_team", teamName).Str("opponent", awayTeam.Team.DisplayName).Msg("found game for tomorrow")
+				log.Info().Str(seattleTeamKey, teamName).Str("opponent", awayTeam.Team.DisplayName).Msg("found game for tomorrow")
 				*tomorrow = append(*tomorrow, &Event{
 					TeamName:  teamName,
 					Venue:     competition.Venue.FullName,
