@@ -42,6 +42,11 @@ func Notify(ctx context.Context, text string, priority Priority, emoji Emoji) er
 
 	notifierKey, err := secrets.GetSecretString(ctx, secretARN)
 
+	if err != nil {
+		log.Error().Err(err).Msg("could not retrieve notifier secret")
+		return fmt.Errorf("notifier: Notify: could not retrieve secret: %w", err)
+	}
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("https://ntfy.sh/%s", notifierKey), strings.NewReader(text))
 	if err != nil {
 		log.Error().Err(err).Msg("could not build ntfy request")
