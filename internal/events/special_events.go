@@ -59,16 +59,19 @@ func specialEventsForDate(ctx context.Context, t time.Time) ([]*Event, error) {
 
 	var events []*Event
 
-	for {
-		res, err := dynamoClient.Query(ctx, queryInput)
+	paginator := dynamodb.NewQueryPaginator(dynamoClient, queryInput)
+
+	// Strategy: Return partially processed results to caller even on error, they might want to do something with it
+	for paginator.HasMorePages() {
+		res, err := paginator.NextPage(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("events: getSpecialEvents: could not query dynamo: %w", err)
+			return events, fmt.Errorf("events: getSpecialEvents: could not query dynamo: %w", err)
 		}
 
 		var pageItems []specialEventRecord
 		err = attributevalue.UnmarshalListOfMaps(res.Items, &pageItems)
 		if err != nil {
-			return nil, fmt.Errorf("events: getSpecialEvents: could not unmarshal dynamo items: %w", err)
+			return events, fmt.Errorf("events: getSpecialEvents: could not unmarshal dynamo items: %w", err)
 		}
 
 		for _, curr := range pageItems {
@@ -81,11 +84,6 @@ func specialEventsForDate(ctx context.Context, t time.Time) ([]*Event, error) {
 				RawTime:        curr.RawTime,
 			})
 		}
-
-		if len(res.LastEvaluatedKey) == 0 {
-			break
-		}
-		queryInput.ExclusiveStartKey = res.LastEvaluatedKey
 	}
 
 	return events, nil
