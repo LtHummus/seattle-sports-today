@@ -16,7 +16,11 @@ import (
 
 const tableEnvironmentVariableName = "SPECIAL_EVENTS_TABLE_NAME"
 
-var dynamoClient *dynamodb.Client
+type dynamoQueryAPI interface {
+	Query(ctx context.Context, params *dynamodb.QueryInput, optFns ...func(*dynamodb.Options)) (*dynamodb.QueryOutput, error)
+}
+
+var dynamoClient dynamoQueryAPI
 
 func init() {
 	cfg, err := config.LoadDefaultConfig(context.Background())
@@ -28,10 +32,21 @@ func init() {
 	log.Info().Str("table_name", os.Getenv(tableEnvironmentVariableName)).Msg("initialized dynamodb client")
 }
 
+type specialEventRecord struct {
+	Date           string `dynamodbav:"date"`
+	Slug           string `dynamodbav:"slug"`
+	TeamName       string `dynamodbav:"team_name"`
+	Venue          string `dynamodbav:"venue"`
+	LocalTime      string `dynamodbav:"local_time"`
+	Opponent       string `dynamodbav:"opponent"`
+	RawDescription string `dynamodbav:"raw_description"`
+	RawTime        int64  `dynamodbav:"raw_time"`
+}
+
 func specialEventsForDate(ctx context.Context, t time.Time) ([]*Event, error) {
 	formattedDate := t.Format("2006-01-02")
 
-	res, err := dynamoClient.Query(ctx, &dynamodb.QueryInput{
+	queryInput := &dynamodb.QueryInput{
 		TableName:              aws.String(os.Getenv(tableEnvironmentVariableName)),
 		KeyConditionExpression: aws.String("#date = :date"),
 		ExpressionAttributeNames: map[string]string{
@@ -40,39 +55,38 @@ func specialEventsForDate(ctx context.Context, t time.Time) ([]*Event, error) {
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":date": &types.AttributeValueMemberS{Value: formattedDate},
 		},
-	})
-	if err != nil {
-		return nil, fmt.Errorf("events: getSpecialEvents: could not query dynamo: %w", err)
 	}
 
-	var items []struct {
-		Date           string `dynamodbav:"date"`
-		Slug           string `dynamodbav:"slug"`
-		TeamName       string `dynamodbav:"team_name"`
-		Venue          string `dynamodbav:"venue"`
-		LocalTime      string `dynamodbav:"local_time"`
-		Opponent       string `dynamodbav:"opponent"`
-		RawDescription string `dynamodbav:"raw_description"`
-		RawTime        int64  `dynamodbav:"raw_time"`
-	}
-	err = attributevalue.UnmarshalListOfMaps(res.Items, &items)
-	if err != nil {
-		return nil, fmt.Errorf("events: getSpecialEvents: could not unmarshal dynamo items: %w", err)
-	}
+	var events []*Event
 
-	ret := make([]*Event, len(items))
-	for i, curr := range items {
-		ret[i] = &Event{
-			TeamName:       curr.TeamName,
-			Venue:          curr.Venue,
-			LocalTime:      curr.LocalTime,
-			Opponent:       curr.Opponent,
-			RawDescription: curr.RawDescription,
-			RawTime:        curr.RawTime,
+	paginator := dynamodb.NewQueryPaginator(dynamoClient, queryInput)
+
+	// Strategy: Return partially processed results to caller even on error, they might want to do something with it
+	for paginator.HasMorePages() {
+		res, err := paginator.NextPage(ctx)
+		if err != nil {
+			return events, fmt.Errorf("events: getSpecialEvents: could not query dynamo: %w", err)
+		}
+
+		var pageItems []specialEventRecord
+		err = attributevalue.UnmarshalListOfMaps(res.Items, &pageItems)
+		if err != nil {
+			return events, fmt.Errorf("events: getSpecialEvents: could not unmarshal dynamo items: %w", err)
+		}
+
+		for _, curr := range pageItems {
+			events = append(events, &Event{
+				TeamName:       curr.TeamName,
+				Venue:          curr.Venue,
+				LocalTime:      curr.LocalTime,
+				Opponent:       curr.Opponent,
+				RawDescription: curr.RawDescription,
+				RawTime:        curr.RawTime,
+			})
 		}
 	}
 
-	return ret, nil
+	return events, nil
 }
 
 func getSpecialEvents(ctx context.Context, today time.Time, tomorrow time.Time) ([]*Event, []*Event, error) {
