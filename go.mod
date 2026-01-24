@@ -1,14 +1,14 @@
 module github.com/lthummus/seattle-sports-today
 
-go 1.24.0
+go 1.25
 
 require (
 	github.com/aws/aws-lambda-go v1.52.0
 	github.com/aws/aws-sdk-go-v2 v1.41.1
 	github.com/aws/aws-sdk-go-v2/config v1.32.7
-	github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.20.30
+	github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.20.31
 	github.com/aws/aws-sdk-go-v2/service/cloudfront v1.59.0
-	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.53.6
+	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.54.0
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.95.1
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.41.1
 	github.com/aws/aws-xray-sdk-go v1.8.5
@@ -51,7 +51,7 @@ require (
 	golang.org/x/net v0.49.0 // indirect
 	golang.org/x/sys v0.40.0 // indirect
 	golang.org/x/text v0.33.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260114163908-3f89685c29c3 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260122232226-8e98ce8d340d // indirect
 	google.golang.org/grpc v1.78.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
