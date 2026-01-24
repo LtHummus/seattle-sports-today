@@ -117,7 +117,7 @@ func TestTicketmasterFetcher_GetEvents(t *testing.T) {
 				assert.Equal(t, curr.date.YearDay(), parsedStart.YearDay())
 				assert.Equal(t, curr.date.AddDate(0, 0, 2).YearDay(), parsedEnd.YearDay())
 
-				w.Write(output)
+				_, _ = w.Write(output)
 			}))
 			f := &ticketmasterFetcher{
 				venues: map[string]string{

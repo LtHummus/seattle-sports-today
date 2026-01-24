@@ -102,7 +102,12 @@ func queryESPNAndAdd(ctx context.Context, url string, teamName string, venue str
 		return fmt.Errorf("events: queryESPN: could not contact API: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Warn().Err(err).Msg("error closing espn response")
+		}
+	}(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
 		body, err := io.ReadAll(resp.Body)

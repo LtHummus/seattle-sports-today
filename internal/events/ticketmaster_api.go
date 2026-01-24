@@ -81,7 +81,7 @@ func eventShouldBeIgnored(e *TicketmasterEvent) bool {
 		return true
 	}
 
-	if e.Classifications == nil || len(e.Classifications) == 0 {
+	if len(e.Classifications) == 0 {
 		log.Info().Str("name", e.Name).Str("venue_name", venueName).Msg("no classifications")
 		return true
 	}
@@ -200,7 +200,12 @@ func (tm *ticketmasterFetcher) getEventsForVenueID(ctx context.Context, venueNam
 	if err != nil {
 		return nil, nil, err
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Warn().Err(err).Msg("error closing ticketmaster response")
+		}
+	}(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
 		body, err := io.ReadAll(resp.Body)
@@ -223,7 +228,7 @@ func (tm *ticketmasterFetcher) getEventsForVenueID(ctx context.Context, venueNam
 		rateLimitResetTime = time.UnixMilli(rateLimitResetTimeInt)
 	}
 
-	timeUntilReset := rateLimitResetTime.Sub(time.Now())
+	timeUntilReset := time.Until(rateLimitResetTime)
 
 	log.Info().Str("venue_name", venueName).Str("remaining_requests", remainingRequestCount).Float64("rate_limit_resets_hours", timeUntilReset.Hours()).Msg("completed ticketmaster API request")
 

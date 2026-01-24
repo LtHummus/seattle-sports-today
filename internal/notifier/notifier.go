@@ -65,7 +65,12 @@ func Notify(ctx context.Context, text string, priority Priority, emoji Emoji) er
 		log.Error().Err(err).Msg("could not make ntfy request")
 		return fmt.Errorf("notifier: Notify: could not make request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Warn().Err(err).Msg("error closing http response from ntfy")
+		}
+	}(resp.Body)
 
 	_, _ = io.ReadAll(resp.Body)
 	return nil
