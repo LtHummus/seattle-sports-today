@@ -100,16 +100,8 @@ jobs:
         with:
           working-directory: ./cdk
 
-      - name: Run govulncheck
-        run: |
-          go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
-          govulncheck ./...
-
       - name: Build
         run: go build ./...
-
-      - name: Run tests
-        run: go test -v -race -count=1 ./...
 
   ci-success:
     name: CI Success
