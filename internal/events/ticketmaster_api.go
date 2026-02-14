@@ -91,10 +91,12 @@ func eventShouldBeIgnored(e *TicketmasterEvent) bool {
 		return true
 	}
 
-	if e.Classifications[0].Segment.Id == SegmentTypeSports && len(e.Embedded.Attractions) < 2 {
-		log.Info().Str("name", e.Name).Str("venue_name", venueName).Int("attraction_count", len(e.Embedded.Attractions)).Msg("not enough attractions")
-		return true
-	}
+	// TODO: figure out a better way to handle this case ... i actually don't remember why i filtered on this in the first
+	//       place, but it ruins things like Motocross, etc
+	//if e.Classifications[0].Segment.Id == SegmentTypeSports && len(e.Embedded.Attractions) < 2 {
+	//	log.Info().Str("name", e.Name).Str("venue_name", venueName).Int("attraction_count", len(e.Embedded.Attractions)).Msg("not enough attractions")
+	//	return true
+	//}
 
 	for _, curr := range e.Classifications {
 		if ignoredClassification := classificationTypesToIgnore[curr.Type.Id]; ignoredClassification != "" {
