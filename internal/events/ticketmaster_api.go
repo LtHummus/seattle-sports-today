@@ -50,6 +50,10 @@ var classificationTypesToIgnore = map[string]string{
 	"KZAyXgnZfZ7v7nJ": "Upsell",
 }
 
+var eventNamesToIgnore = map[string]struct{}{
+	"Seattle Kraken Suites": {},
+}
+
 type ticketmasterFetcher struct {
 	venues        map[string]string
 	attractionIDs map[string]string
@@ -69,6 +73,13 @@ func eventShouldBeIgnored(e *TicketmasterEvent) bool {
 	venueName := ""
 	if len(e.Embedded.Venues) != 0 {
 		venueName = e.Embedded.Venues[0].Name
+	}
+
+	for curr := range eventNamesToIgnore {
+		if curr == e.Name {
+			log.Info().Str("name", e.Name).Str("venue_name", venueName).Msg("ignoring by name")
+			return true
+		}
 	}
 
 	if e.Dates.Status.Code == "cancelled" {

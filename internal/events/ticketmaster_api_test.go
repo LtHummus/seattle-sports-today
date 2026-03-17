@@ -80,6 +80,17 @@ func TestTicketmasterFetcher_GetEvents(t *testing.T) {
 				assert.Empty(t, events)
 			},
 		},
+		{
+			name: "Duplicated kraken events",
+			file: "duplicated_kraken.json",
+			date: time.Date(2026, time.March, 17, 0, 0, 0, 0, SeattleTimeZone),
+			checkToday: func(t *testing.T, events []*Event) {
+				assert.Len(t, events, 1)
+			},
+			checkTomorrow: func(t *testing.T, events []*Event) {
+				assert.Empty(t, events)
+			},
+		},
 	}
 
 	for _, curr := range tests {
