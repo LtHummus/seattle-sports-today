@@ -46,8 +46,10 @@ func (g *Google) CreateEvent(ctx context.Context, event *events.Event) error {
 	googleValidID := base32.HexEncoding.EncodeToString([]byte(event.ID))
 	googleValidID = strings.ToLower(strings.TrimRight(googleValidID, "="))
 
+	// for now, assume every event is 3 hours...but we could probably do better
 	start := time.Unix(event.RawTime, 0)
 	end := start.Add(3 * time.Hour)
+
 	googleEvent := gcalendar.Event{
 		Id:          googleValidID,
 		Description: event.String(),
