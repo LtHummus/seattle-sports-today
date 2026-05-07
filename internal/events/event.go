@@ -50,6 +50,7 @@ type EventResults struct {
 }
 
 type Event struct {
+	ID        string `json:"id"`
 	TeamName  string `json:"team_name"`
 	Venue     string `json:"venue"`
 	LocalTime string `json:"local_time"`

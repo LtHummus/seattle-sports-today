@@ -11,6 +11,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
+	"github.com/lthummus/seattle-sports-today/internal/calendar"
 	"github.com/lthummus/seattle-sports-today/internal/events"
 	"github.com/lthummus/seattle-sports-today/internal/notifier"
 	"github.com/lthummus/seattle-sports-today/internal/renderhtml"
@@ -22,6 +23,34 @@ import (
 type CustomEvent struct {
 	Today  string `json:"today"`
 	Upload bool   `json:"upload"`
+}
+
+func insertToGoogleCalendar(ctx context.Context, events []*events.Event) error {
+	// this is a low priority thing...if it doesn't work, we should error, but not blow up
+
+	calendarID := os.Getenv("GOOGLE_CALENDAR_ID")
+	if calendarID == "" {
+		return fmt.Errorf("insertToGoogleCalendar: GOOGLE_CALENDAR_ID not set")
+	}
+
+	credentials, err := secrets.GetSecretString(ctx, os.Getenv("GOOGLE_CREDENTIALS_SECRET_NAME"))
+	if err != nil {
+		return fmt.Errorf("insertToGoogleCalendar: could not get credentials: %w", err)
+	}
+
+	calendarClient, err := calendar.NewGoogleCalendar(ctx, credentials, calendarID)
+	if err != nil {
+		return fmt.Errorf("insertToGoogleCalendar: could not create Google API client: %w", err)
+	}
+
+	for _, curr := range events {
+		err = calendarClient.CreateEvent(ctx, curr)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func eventHandler(ctx context.Context, event CustomEvent) error {
@@ -98,6 +127,12 @@ func eventHandler(ctx context.Context, event CustomEvent) error {
 		if err != nil {
 			_ = notifier.Notify(ctx, fmt.Sprintf("ERROR: upload page: %s", err.Error()), notifier.PriorityHigh, notifier.EmojiSiren)
 			return err
+		}
+
+		log.Info().Msg("storing in google calendar")
+		err = insertToGoogleCalendar(ctx, eventResults.TodayEvent)
+		if err != nil {
+			log.Warn().Err(err).Msg("could not insert in to google calendar; ignoring")
 		}
 
 		log.Info().Msg("upload complete")

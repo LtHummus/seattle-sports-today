@@ -76,6 +76,7 @@ func specialEventsForDate(ctx context.Context, t time.Time) ([]*Event, error) {
 
 		for _, curr := range pageItems {
 			events = append(events, &Event{
+				ID:             fmt.Sprintf("%s-%s", curr.Date, curr.Slug),
 				TeamName:       curr.TeamName,
 				Venue:          curr.Venue,
 				LocalTime:      curr.LocalTime,
