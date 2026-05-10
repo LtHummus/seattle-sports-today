@@ -159,9 +159,10 @@ func (tm *ticketmasterFetcher) buildInternalEvent(e TicketmasterEvent, venueName
 	if seattleTeam == "" {
 		// not a seattle sports team, just take event name and build that event
 		return &Event{
-			ID:             e.Id,
-			RawDescription: fmt.Sprintf("%s is at %s. It starts at %s", e.Name, venueName, eventTimeFormatted),
-			RawTime:        eventTime.Unix(),
+			ID:               e.Id,
+			ShortDescription: fmt.Sprintf("%s is at %s", e.Name, venueName),
+			RawDescription:   fmt.Sprintf("%s is at %s. It starts at %s", e.Name, venueName, eventTimeFormatted),
+			RawTime:          eventTime.Unix(),
 		}, nil
 	}
 

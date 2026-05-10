@@ -53,7 +53,7 @@ func (g *Google) CreateEvent(ctx context.Context, event *events.Event) error {
 	googleEvent := gcalendar.Event{
 		Id:          googleValidID,
 		Description: event.String(),
-		Summary:     event.String(),
+		Summary:     event.CalendarSummary(),
 		Location:    event.Venue,
 		Start:       &gcalendar.EventDateTime{DateTime: start.Format(time.RFC3339)},
 		End:         &gcalendar.EventDateTime{DateTime: end.Format(time.RFC3339)},

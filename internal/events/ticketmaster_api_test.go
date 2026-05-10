@@ -37,12 +37,14 @@ func TestTicketmasterFetcher_GetEvents(t *testing.T) {
 				returnedEvent := events[0]
 				assert.Equal(t, "vvG1HZbMO06yRa", returnedEvent.ID)
 				assert.Equal(t, "Jo Koy: Just Being Koy Tour is at Climate Pledge Arena. It starts at 8:00 PM", returnedEvent.RawDescription)
+				assert.Equal(t, "Jo Koy: Just Being Koy Tour is at Climate Pledge Arena", returnedEvent.ShortDescription)
 			},
 			checkTomorrow: func(t *testing.T, events []*Event) {
 				assert.Len(t, events, 1)
 				returnedEvent := events[0]
 				assert.Equal(t, "vvG1HZbSbGrpbV", returnedEvent.ID)
 				assert.Equal(t, "GHOST: Skeletour World Tour 2026 is at Climate Pledge Arena. It starts at 8:00 PM", returnedEvent.RawDescription)
+				assert.Equal(t, "GHOST: Skeletour World Tour 2026 is at Climate Pledge Arena", returnedEvent.ShortDescription)
 			},
 		},
 		{
@@ -54,12 +56,14 @@ func TestTicketmasterFetcher_GetEvents(t *testing.T) {
 
 				assert.Equal(t, "vvG1HZbURG_tsM", events[0].ID)
 				assert.Equal(t, "Battle of the Sound: Seattle Thunderbirds vs Everett Silvertips is at Climate Pledge Arena. It starts at 6:05 PM", events[0].RawDescription)
+				assert.Equal(t, "Battle of the Sound: Seattle Thunderbirds vs Everett Silvertips is at Climate Pledge Arena", events[0].ShortDescription)
 			},
 			checkTomorrow: func(t *testing.T, events []*Event) {
 				assert.Len(t, events, 1)
 
 				assert.Equal(t, "vvG1HZbRwIT3PJ", events[0].ID)
 				assert.Equal(t, "The Harlem Globetrotters 100 Year Tour is at Climate Pledge Arena. It starts at 3:00 PM", events[0].RawDescription)
+				assert.Equal(t, "The Harlem Globetrotters 100 Year Tour is at Climate Pledge Arena", events[0].ShortDescription)
 			},
 		},
 		{
