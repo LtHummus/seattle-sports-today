@@ -26,6 +26,8 @@ const (
 	notificationSecretName = "seattle-sports-today/ntfy-secret"
 	ticketmasterSecretName = "seattle-sports-today/ticketmaster-api-key"
 	wbnaSecretName         = "seattle-sports-today/wbna-api-key"
+	googleAuthSecretName   = "seattle-sports-today/google-api-credentials"
+	googleCalendarID       = "0be6e6b6ae9393690297bb01e75a3efd7a0cd078913ae72522269ad6cbc82ba9@group.calendar.google.com"
 )
 
 type CdkStackProps struct {
@@ -42,6 +44,7 @@ func NewCdkStack(scope constructs.Construct, id string, props *CdkStackProps) aw
 	notificationSecret := awssecretsmanager.Secret_FromSecretNameV2(stack, jsii.String("NotificationSecret"), jsii.String(notificationSecretName))
 	ticketmasterSecret := awssecretsmanager.Secret_FromSecretNameV2(stack, jsii.String("TicketmasterSecret"), jsii.String(ticketmasterSecretName))
 	wbnaSecret := awssecretsmanager.Secret_FromSecretNameV2(stack, jsii.String("WNBASecret"), jsii.String(wbnaSecretName))
+	googleCredsSecret := awssecretsmanager.Secret_FromSecretNameV2(stack, jsii.String("GoogleSecret"), jsii.String(googleAuthSecretName))
 
 	bucket := awss3.NewBucket(stack, jsii.String("hosting-bucket"), &awss3.BucketProps{
 		AccessControl: awss3.BucketAccessControl_PRIVATE,
@@ -110,6 +113,8 @@ func NewCdkStack(scope constructs.Construct, id string, props *CdkStackProps) aw
 			"SPECIAL_EVENTS_TABLE_NAME":        specialEventsTable.TableName(),
 			"TICKETMASTER_API_KEY_SECRET_NAME": jsii.String(ticketmasterSecretName),
 			"WBNA_API_KEY_SECRET_NAME":         jsii.String(wbnaSecretName),
+			"GOOGLE_CALENDAR_ID":               jsii.String(googleCalendarID),
+			"GOOGLE_CREDENTIALS_SECRET_NAME":   jsii.String(googleAuthSecretName),
 		},
 		LoggingFormat:   awslambda.LoggingFormat_JSON,
 		InsightsVersion: awslambda.LambdaInsightsVersion_VERSION_1_0_317_0(),
@@ -121,6 +126,7 @@ func NewCdkStack(scope constructs.Construct, id string, props *CdkStackProps) aw
 	notificationSecret.GrantRead(updateFunction, nil)
 	ticketmasterSecret.GrantRead(updateFunction, nil)
 	wbnaSecret.GrantRead(updateFunction, nil)
+	googleCredsSecret.GrantRead(updateFunction, nil)
 	specialEventsTable.GrantReadData(updateFunction)
 
 	eventRule := awsevents.NewRule(stack, jsii.String("UpdateFunctionCron"), &awsevents.RuleProps{

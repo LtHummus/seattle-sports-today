@@ -33,14 +33,15 @@ func init() {
 }
 
 type specialEventRecord struct {
-	Date           string `dynamodbav:"date"`
-	Slug           string `dynamodbav:"slug"`
-	TeamName       string `dynamodbav:"team_name"`
-	Venue          string `dynamodbav:"venue"`
-	LocalTime      string `dynamodbav:"local_time"`
-	Opponent       string `dynamodbav:"opponent"`
-	RawDescription string `dynamodbav:"raw_description"`
-	RawTime        int64  `dynamodbav:"raw_time"`
+	Date             string `dynamodbav:"date"`
+	Slug             string `dynamodbav:"slug"`
+	TeamName         string `dynamodbav:"team_name"`
+	Venue            string `dynamodbav:"venue"`
+	LocalTime        string `dynamodbav:"local_time"`
+	Opponent         string `dynamodbav:"opponent"`
+	ShortDescription string `dynamodbav:"short_description"`
+	RawDescription   string `dynamodbav:"raw_description"`
+	RawTime          int64  `dynamodbav:"raw_time"`
 }
 
 func specialEventsForDate(ctx context.Context, t time.Time) ([]*Event, error) {
@@ -76,12 +77,14 @@ func specialEventsForDate(ctx context.Context, t time.Time) ([]*Event, error) {
 
 		for _, curr := range pageItems {
 			events = append(events, &Event{
-				TeamName:       curr.TeamName,
-				Venue:          curr.Venue,
-				LocalTime:      curr.LocalTime,
-				Opponent:       curr.Opponent,
-				RawDescription: curr.RawDescription,
-				RawTime:        curr.RawTime,
+				ID:               fmt.Sprintf("%s-%s", curr.Date, curr.Slug),
+				TeamName:         curr.TeamName,
+				Venue:            curr.Venue,
+				LocalTime:        curr.LocalTime,
+				Opponent:         curr.Opponent,
+				ShortDescription: curr.ShortDescription,
+				RawDescription:   curr.RawDescription,
+				RawTime:          curr.RawTime,
 			})
 		}
 	}

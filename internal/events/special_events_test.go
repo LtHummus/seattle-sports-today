@@ -206,12 +206,12 @@ func TestGetSpecialEvents(t *testing.T) {
 		responses: []*dynamodb.QueryOutput{
 			{
 				Items: []map[string]types.AttributeValue{
-					buildItem(t, specialEventRecord{TeamName: "Today Team"}),
+					buildItem(t, specialEventRecord{Date: "2026-01-12", Slug: "foo", TeamName: "Today Team"}),
 				},
 			},
 			{
 				Items: []map[string]types.AttributeValue{
-					buildItem(t, specialEventRecord{TeamName: "Tomorrow Team"}),
+					buildItem(t, specialEventRecord{Date: "2026-01-13", Slug: "bar", TeamName: "Tomorrow Team"}),
 				},
 			},
 		},
@@ -222,8 +222,10 @@ func TestGetSpecialEvents(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Len(t, todayEvents, 1)
+	assert.Equal(t, "2026-01-12-foo", todayEvents[0].ID)
 	assert.Equal(t, "Today Team", todayEvents[0].TeamName)
 	assert.Len(t, tomorrowEvents, 1)
+	assert.Equal(t, "2026-01-13-bar", tomorrowEvents[0].ID)
 	assert.Equal(t, "Tomorrow Team", tomorrowEvents[0].TeamName)
 
 	require.Len(t, fake.receivedInputs, 2)

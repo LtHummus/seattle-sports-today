@@ -88,6 +88,7 @@ type espnTeamResponse struct {
 	} `json:"team"`
 }
 
+// queryESPNAndAdd uses an undocumented ESPN API. This is liable to break at any moment :(
 func queryESPNAndAdd(ctx context.Context, url string, teamName string, venue string, today *[]*Event, tomorrow *[]*Event, seattleToday time.Time, seattleTomorrow time.Time) error {
 	log.Info().Str(seattleTeamKey, teamName).Msg("querying espn for team info")
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -167,6 +168,7 @@ func queryESPNAndAdd(ctx context.Context, url string, teamName string, venue str
 			if isDay(seattleToday, seattleStart) {
 				log.Info().Str(seattleTeamKey, teamName).Str("opponent", awayTeam.Team.DisplayName).Msg("found game for today")
 				*today = append(*today, &Event{
+					ID:        competition.Id,
 					TeamName:  teamName,
 					Venue:     competition.Venue.FullName,
 					LocalTime: gameTime.In(SeattleTimeZone).Format(localTimeDateFormat),
@@ -176,6 +178,7 @@ func queryESPNAndAdd(ctx context.Context, url string, teamName string, venue str
 			} else if isDay(seattleTomorrow, seattleStart) {
 				log.Info().Str(seattleTeamKey, teamName).Str("opponent", awayTeam.Team.DisplayName).Msg("found game for tomorrow")
 				*tomorrow = append(*tomorrow, &Event{
+					ID:        competition.Id,
 					TeamName:  teamName,
 					Venue:     competition.Venue.FullName,
 					LocalTime: gameTime.In(SeattleTimeZone).Format(localTimeDateFormat),

@@ -2,6 +2,8 @@
 
 Powers https://isthereaseattlehomegametoday.com/ to let the public know if there is a home game being played in Seattle today. Use this to plan for traffic accordingly.
 
+And if you really don't want to visit my beautiful website, events get published to [this Google Calendar](https://calendar.google.com/calendar/u/0?cid=MGJlNmU2YjZhZTkzOTM2OTAyOTdiYjAxZTc1YTNlZmQ3YTBjZDA3ODkxM2FlNzI1MjIyNjlhZDZjYmM4MmJhOUBncm91cC5jYWxlbmRhci5nb29nbGUuY29t) every morning during the run.
+
 ## Teams we look at
 
 | Team                                      | League     | Venue                 |

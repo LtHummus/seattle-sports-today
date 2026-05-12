@@ -50,14 +50,28 @@ type EventResults struct {
 }
 
 type Event struct {
-	TeamName  string `json:"team_name"`
-	Venue     string `json:"venue"`
-	LocalTime string `json:"local_time"`
-	Opponent  string `json:"opponent"`
+	ID               string `json:"id"`
+	TeamName         string `json:"team_name"`
+	Venue            string `json:"venue"`
+	LocalTime        string `json:"local_time"`
+	Opponent         string `json:"opponent"`
+	ShortDescription string `json:"short_description"`
 
 	RawDescription string `json:"raw_description,omitempty"`
 
 	RawTime int64 `json:"raw_time"`
+}
+
+func (e *Event) CalendarSummary() string {
+	if e.ShortDescription != "" {
+		return e.ShortDescription
+	}
+
+	if e.RawDescription != "" {
+		return e.RawDescription
+	}
+
+	return fmt.Sprintf("%s are playing against the %s at %s", e.TeamName, e.Opponent, e.Venue)
 }
 
 func (e *Event) String() string {
