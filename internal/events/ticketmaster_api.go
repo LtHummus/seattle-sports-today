@@ -44,6 +44,7 @@ var seattleTeamAttractionIDs = map[string]string{
 
 var attractionsToIgnore = map[string]string{
 	"K8vZ9175lB0": "Mariners Fan Fest",
+	"K8vZ917rUHV": "World Cup 2026", // we have these in dynamo
 }
 
 var classificationTypesToIgnore = map[string]string{
