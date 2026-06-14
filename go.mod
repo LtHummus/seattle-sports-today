@@ -11,7 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.59.0
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.103.3
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.42.3
-	github.com/aws/aws-xray-sdk-go v1.8.5
+	github.com/aws/aws-xray-sdk-go/v2 v2.0.1
 	github.com/rs/zerolog v1.35.1
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/oauth2 v0.36.0
@@ -25,7 +25,6 @@ require (
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
 	github.com/andybalholm/brotli v1.2.1 // indirect
-	github.com/aws/aws-sdk-go v1.55.8 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.13 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.24 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.29 // indirect
@@ -52,7 +51,6 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.16 // indirect
 	github.com/googleapis/gax-go/v2 v2.22.0 // indirect
-	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/klauspost/compress v1.18.6 // indirect
 	github.com/mattn/go-colorable v0.1.15 // indirect
 	github.com/mattn/go-isatty v0.0.22 // indirect

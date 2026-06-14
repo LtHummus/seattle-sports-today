@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/aws/aws-xray-sdk-go/xray"
+	"github.com/aws/aws-xray-sdk-go/v2/xray"
 	"github.com/rs/zerolog/log"
 
 	"github.com/lthummus/seattle-sports-today/internal/secrets"

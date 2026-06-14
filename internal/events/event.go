@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aws/aws-xray-sdk-go/xray"
+	"github.com/aws/aws-xray-sdk-go/v2/xray"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/time/rate"
 
