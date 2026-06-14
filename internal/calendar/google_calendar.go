@@ -58,11 +58,11 @@ func (g *Google) CreateEvent(ctx context.Context, event *events.Event) error {
 		Start:       &gcalendar.EventDateTime{DateTime: start.Format(time.RFC3339)},
 		End:         &gcalendar.EventDateTime{DateTime: end.Format(time.RFC3339)},
 	}
-	createdEvent, err := g.eventService.Insert(g.calendarID, &googleEvent).Do()
+	createdEvent, err := g.eventService.Insert(g.calendarID, &googleEvent).Context(ctx).Do()
 	if gerr, ok := errors.AsType[*googleapi.Error](err); ok && gerr.Code == http.StatusConflict {
 		// event already exists, so try to update
 		log.Warn().Ctx(ctx).Str("event_id", googleValidID).Msg("event already exists, attempting to update")
-		createdEvent, err = g.eventService.Update(g.calendarID, googleValidID, &googleEvent).Do()
+		createdEvent, err = g.eventService.Update(g.calendarID, googleValidID, &googleEvent).Context(ctx).Do()
 	}
 	if err != nil && !googleapi.IsNotModified(err) {
 		log.Error().Ctx(ctx).Err(err).Str("event_description", event.String()).Msg("could not insert event")
@@ -70,7 +70,7 @@ func (g *Google) CreateEvent(ctx context.Context, event *events.Event) error {
 	}
 
 	if googleapi.IsNotModified(err) {
-		log.Warn().Ctx(ctx).Str("event_id", createdEvent.Id).Str("event_description", event.String()).Msg("event already existed in google calendar")
+		log.Warn().Ctx(ctx).Str("event_id", googleValidID).Str("event_description", event.String()).Msg("event already existed in google calendar")
 		return nil
 	}
 
