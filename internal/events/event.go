@@ -2,6 +2,7 @@ package events
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -9,7 +10,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-xray-sdk-go/v2/xray"
-	"golang.org/x/sync/errgroup"
 	"golang.org/x/time/rate"
 
 	"github.com/rs/zerolog/log"
@@ -22,7 +22,9 @@ type eventFetcher func(ctx context.Context, today time.Time, tomorrow time.Time)
 var (
 	SeattleTimeZone *time.Location
 
-	httpClient = xray.Client(http.DefaultClient)
+	httpClient = xray.Client(&http.Client{
+		Timeout: 5 * time.Second,
+	})
 )
 
 const (
@@ -99,21 +101,30 @@ func fetchAndAppendEvents(ctx context.Context, fetcher eventFetcher, res *EventR
 }
 
 func GetTodayAndTomorrowGames(ctx context.Context, seattleToday time.Time, seattleTomorrow time.Time) (*EventResults, error) {
-	eg, ctx := errgroup.WithContext(ctx)
+	var wg sync.WaitGroup
 
 	res := &EventResults{}
 	var eventLock sync.Mutex
 
-	eg.Go(func() error {
+	var errLock sync.Mutex
+	var errs []error
+	recordErr := func(source string, err error) {
+		errLock.Lock()
+		defer errLock.Unlock()
+		errs = append(errs, fmt.Errorf("%s: %w", source, err))
+	}
+
+	wg.Go(func() {
 		ticketmasterApiKeySecretName := os.Getenv(TicketmasterApiKeySecretName)
 		if ticketmasterApiKeySecretName == "" {
 			log.Warn().Str("env_var_name", TicketmasterApiKeySecretName).Msg("environment variable not set. Not querying ticketmaster")
-			return nil
+			return
 		}
 
 		apiKey, err := secrets.GetSecretString(ctx, ticketmasterApiKeySecretName)
 		if err != nil {
-			return fmt.Errorf("events: getTicketmasterEvents: could not get ticketmaster secret: %w", err)
+			recordErr("ticketmater", fmt.Errorf("events: getTicketmasterEvents: could not get ticketmaster secret: %w", err))
+			return
 		}
 
 		tm := &ticketmasterFetcher{
@@ -124,21 +135,27 @@ func GetTodayAndTomorrowGames(ctx context.Context, seattleToday time.Time, seatt
 			baseURL:       TicketmasterDefaultBaseURL,
 		}
 
-		return fetchAndAppendEvents(ctx, tm.GetEvents, res, &eventLock, seattleToday, seattleTomorrow)
+		err = fetchAndAppendEvents(ctx, tm.GetEvents, res, &eventLock, seattleToday, seattleTomorrow)
+		if err != nil {
+			recordErr("ticketmaster", err)
+		}
 	})
 
-	eg.Go(func() error {
-		return fetchAndAppendEvents(ctx, getSpecialEvents, res, &eventLock, seattleToday, seattleTomorrow)
+	wg.Go(func() {
+		err := fetchAndAppendEvents(ctx, getSpecialEvents, res, &eventLock, seattleToday, seattleTomorrow)
+		if err != nil {
+			recordErr("special_events", err)
+		}
 	})
 
-	eg.Go(func() error {
-		return fetchAndAppendEvents(ctx, GetUWGames, res, &eventLock, seattleToday, seattleTomorrow)
+	wg.Go(func() {
+		err := fetchAndAppendEvents(ctx, GetUWGames, res, &eventLock, seattleToday, seattleTomorrow)
+		if err != nil {
+			recordErr("uw", err)
+		}
 	})
 
-	err := eg.Wait()
-	if err != nil {
-		return nil, err
-	}
+	wg.Wait()
 
-	return res, nil
+	return res, errors.Join(errs...)
 }

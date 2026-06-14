@@ -83,8 +83,9 @@ func eventHandler(ctx context.Context, event CustomEvent) error {
 	log.Info().Bool("triggered_by_event_bridge", triggeredByEventBridge).Time("seattle_today", seattleToday).Time("seattle_tomorrow", seattleTomorrow).Msg("getting today's games")
 	eventResults, err := events.GetTodayAndTomorrowGames(ctx, seattleToday, seattleTomorrow)
 	if err != nil {
+		// if we have an error, that means at least one source failed. `eventResults` will always be non-nil, so might as well work with what we have and
+		// send an alert to my phone
 		_ = notifier.Notify(ctx, fmt.Sprintf("ERROR: could not get today's games: %s", err.Error()), notifier.PriorityHigh, notifier.EmojiSiren)
-		return err
 	}
 
 	log.Info().Int("today_games_found", len(eventResults.TodayEvent)).Int("tomorrow_games_found", len(eventResults.TomorrowEvents)).Msg("found games")

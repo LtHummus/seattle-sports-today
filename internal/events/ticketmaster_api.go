@@ -295,6 +295,11 @@ func (tm *ticketmasterFetcher) GetEvents(ctx context.Context, seattleToday time.
 	var tomorrowEvents []*Event
 
 	for venueName, venueID := range tm.venues {
+		err = tm.limiter.Wait(ctx)
+		if err != nil {
+			log.Error().Err(err).Msg("could not wait for ticketmaster rate limiter")
+		}
+
 		var foundToday []*Event
 		var foundTomorrow []*Event
 		foundToday, foundTomorrow, err = tm.getEventsForVenueID(ctx, venueName, venueID, start, end, seattleToday, seattleTomorrow)
@@ -306,11 +311,6 @@ func (tm *ticketmasterFetcher) GetEvents(ctx context.Context, seattleToday time.
 		}
 		if len(foundTomorrow) > 0 {
 			tomorrowEvents = append(tomorrowEvents, foundTomorrow...)
-		}
-
-		err = tm.limiter.Wait(ctx)
-		if err != nil {
-			log.Error().Err(err).Msg("could not wait for ticketmaster rate limiter")
 		}
 	}
 
