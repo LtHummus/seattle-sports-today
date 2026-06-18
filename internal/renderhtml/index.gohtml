@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/pico.min.css">
-    <link rel="stylesheet" href="/seattle-sports-today-432c9cb.css">
+    <link rel="stylesheet" href="/seattle-sports-today-518bb1b.css">
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
     <title>Is there a Seattle home game today?</title>
 </head>
@@ -31,11 +31,13 @@
             {{ end }}
         </div>
     </main>
-    <footer>
-        <div class="date-footer">
-            {{ .FullGeneratedDate }}
-            Generated on {{ .GeneratedDate }}
-        </div>
+    <footer class="container site-footer">
+        {{ .FullGeneratedDate }}
+        <p class="disclaimer">
+            All teams, performers, logos, and everything else are trademarked by their
+            respective owners. I'm just a website that gets information.
+        </p>
+        <p class="generated">Generated on {{ .GeneratedDate }}</p>
     </footer>
 </body>
 </html>
