@@ -19,6 +19,9 @@ import (
 const (
 	envVarBucketName     = "UPLOAD_S3_BUCKET_NAME"
 	envVarDistributionID = "UPLOAD_CF_DISTRIBUTION_ID"
+
+	// we want browsers to always revalidate, cloudfront to hold on to things for a day (or until manual invalidation)
+	cachePolicy = "max-age=0, must-revalidate, s-maxage=86400"
 )
 
 var (
@@ -43,10 +46,11 @@ func uploadObject(ctx context.Context, contents []byte, key string, contentType 
 	log.Info().Str("bucket", bucketName).Str("key", key).Str("content_type", contentType).Msg("uploading object")
 
 	_, err := s3Client.PutObject(ctx, &s3.PutObjectInput{
-		Bucket:      aws.String(bucketName),
-		Key:         aws.String(key),
-		Body:        bytes.NewReader(contents),
-		ContentType: aws.String(contentType),
+		Bucket:       aws.String(bucketName),
+		Key:          aws.String(key),
+		Body:         bytes.NewReader(contents),
+		ContentType:  aws.String(contentType),
+		CacheControl: aws.String(cachePolicy),
 	})
 	if err != nil {
 		return fmt.Errorf("uploader: Upload: could not upload to S3: %s: %w", key, err)
