@@ -39,4 +39,4 @@ When running locally, there's a special escape hatch where you can run `main.go`
 
 ### One more thank you...
 
-Because I liked the whimsy, for the World Cup matches in Seattle, I used flag Emoji. That means I'm using 
+Because I liked the whimsy, for the World Cup matches in Seattle, I used flag Emoji. That means I'm using Twemoji Country Flags. Also using pico.css :)

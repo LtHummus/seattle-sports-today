@@ -58,6 +58,11 @@ func NewCdkStack(scope constructs.Construct, id string, props *CdkStackProps) aw
 		Sources: &[]awss3deployment.ISource{
 			awss3deployment.Source_Asset(jsii.String("../static"), nil),
 		},
+		CacheControl: &[]awss3deployment.CacheControl{
+			awss3deployment.CacheControl_MaxAge(awscdk.Duration_Days(jsii.Number(90))),
+			awss3deployment.CacheControl_Immutable(),
+		},
+		Prune: jsii.Bool(false),
 	})
 
 	hostedZone := awsroute53.HostedZone_FromLookup(stack, jsii.String("HostedZone"), &awsroute53.HostedZoneProviderProps{

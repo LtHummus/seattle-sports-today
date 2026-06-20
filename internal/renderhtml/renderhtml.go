@@ -15,7 +15,13 @@ import (
 //go:embed index.gohtml
 var templateString string
 
-var pageTemplate *template.Template
+//go:embed seattle-sports-today.css
+var cssString string
+
+var (
+	pageTemplate *template.Template
+	cssTemplate  template.CSS
+)
 
 func init() {
 	var err error
@@ -23,6 +29,11 @@ func init() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("could not parse template")
 	}
+
+	// we embed the special, seattle sports today CSS directly in to the HTML file. Originally, it was served separately,
+	// but I wa tired of hand-maintaining the cache-busting hash and figured this was easier. It's less than 2 kB of CSS
+	// so no big deal
+	cssTemplate = template.CSS(cssString) //#nosec G203 -- entirely static
 }
 
 type templateParams struct {
@@ -31,6 +42,7 @@ type templateParams struct {
 	GeneratedDate     string
 	FullGeneratedDate template.HTML
 	TomorrowHeading   string
+	Style             template.CSS
 }
 
 func tomorrowHeader(gamesToday, gamesTomorrow bool) string {
@@ -64,6 +76,7 @@ func RenderPage(results *events.EventResults, seattleToday time.Time) ([]byte, e
 		GeneratedDate:     generatedDateString,
 		FullGeneratedDate: generatedTimestamp,
 		TomorrowHeading:   tomorrowHeader(len(results.TodayEvent) > 0, len(results.TomorrowEvents) > 0),
+		Style:             cssTemplate,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("renderPage: could not render: %w", err)
