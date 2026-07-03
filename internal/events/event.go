@@ -130,7 +130,7 @@ func GetTodayAndTomorrowGames(ctx context.Context, seattleToday time.Time, seatt
 		tm := &ticketmasterFetcher{
 			venues:        seattleVenueMap,
 			attractionIDs: seattleTeamAttractionIDs,
-			limiter:       rate.NewLimiter(4, 1),
+			limiter:       rate.NewLimiter(3, 1),
 			apiKey:        apiKey,
 			baseURL:       TicketmasterDefaultBaseURL,
 		}

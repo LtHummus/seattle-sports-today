@@ -59,7 +59,7 @@ func uploadObject(ctx context.Context, contents []byte, key string, contentType 
 	return nil
 }
 
-func Upload(ctx context.Context, htmlContents []byte, jsonContents []byte) error {
+func Upload(ctx context.Context, htmlContents []byte, jsonContents []byte, invalidateAll bool) error {
 	eg, ctx2 := errgroup.WithContext(ctx)
 
 	eg.Go(func() error {
@@ -78,7 +78,7 @@ func Upload(ctx context.Context, htmlContents []byte, jsonContents []byte) error
 	log.Info().Str("distribution_id", distributionID).Msg("invalidating CF cache")
 
 	pathList := []string{"/index.html", "/todays_events.json"}
-	if os.Getenv("INVALIDATE_ALL") == "true" {
+	if invalidateAll {
 		log.Info().Msg("invalidating everything")
 		pathList = []string{"/*"}
 	}
