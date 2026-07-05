@@ -10,6 +10,7 @@ body {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+    min-height: 100dvh;
 }
 
 main {
@@ -21,7 +22,7 @@ main {
     max-width: fit-content;
     margin-left: auto;
     margin-right: auto;
-    padding-top: 10%;
+    padding-top: 8vh;
 }
 
 #tomorrow {
@@ -29,7 +30,7 @@ main {
     max-width: fit-content;
     margin-left: auto;
     margin-right: auto;
-    padding-top: 10%;
+    padding-top: 8vh;
     padding-bottom: 30px;
 }
 
