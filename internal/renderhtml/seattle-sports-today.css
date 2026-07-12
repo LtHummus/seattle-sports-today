@@ -11,6 +11,10 @@ main {
     flex: 1 0 auto;
 }
 
+main .grid {
+    text-align: center;
+}
+
 #answer {
     font-size: 100px;
     max-width: fit-content;
