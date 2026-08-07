@@ -52,7 +52,8 @@ var classificationTypesToIgnore = map[string]string{
 }
 
 var eventNamesToIgnore = map[string]struct{}{
-	"Seattle Kraken Suites": {},
+	"Seattle Kraken Suites":  {},
+	"Seahawks Football Fest": {},
 }
 
 type ticketmasterFetcher struct {
