@@ -85,19 +85,16 @@ func (e *Event) String() string {
 }
 
 func fetchAndAppendEvents(ctx context.Context, fetcher eventFetcher, res *EventResults, eventLock *sync.Mutex, todayDate time.Time, tomorrowDate time.Time) error {
-	today, tomorrow, e := fetcher(ctx, todayDate, tomorrowDate)
-	if e != nil {
-		return e
-	}
-	if len(today) == 0 && len(tomorrow) == 0 {
-		return nil
+	// fetchers may return partial results alongside an error, so keep whatever we got before reporting the error
+	today, tomorrow, err := fetcher(ctx, todayDate, tomorrowDate)
+	if len(today) > 0 || len(tomorrow) > 0 {
+		eventLock.Lock()
+		res.TodayEvent = append(res.TodayEvent, today...)
+		res.TomorrowEvents = append(res.TomorrowEvents, tomorrow...)
+		eventLock.Unlock()
 	}
 
-	eventLock.Lock()
-	defer eventLock.Unlock()
-	res.TodayEvent = append(res.TodayEvent, today...)
-	res.TomorrowEvents = append(res.TomorrowEvents, tomorrow...)
-	return nil
+	return err
 }
 
 func GetTodayAndTomorrowGames(ctx context.Context, seattleToday time.Time, seattleTomorrow time.Time) (*EventResults, error) {
@@ -113,17 +110,31 @@ func GetTodayAndTomorrowGames(ctx context.Context, seattleToday time.Time, seatt
 		defer errLock.Unlock()
 		errs = append(errs, fmt.Errorf("%s: %w", source, err))
 	}
+	// recover() only works in the panicking goroutine, so each fetcher needs its own; otherwise a panic in a fetcher
+	// takes down the whole process instead of being reported as a failed source
+	recoverAs := func(source string) {
+		if r := recover(); r != nil {
+			log.Error().Str("source", source).Interface("panic", r).Msg("recovered from panic in event fetcher")
+			recordErr(source, fmt.Errorf("panic: %v", r))
+		}
+	}
 
 	wg.Go(func() {
+		defer recoverAs("ticketmaster")
+
 		ticketmasterApiKeySecretName := os.Getenv(TicketmasterApiKeySecretName)
 		if ticketmasterApiKeySecretName == "" {
 			log.Warn().Str("env_var_name", TicketmasterApiKeySecretName).Msg("environment variable not set. Not querying ticketmaster")
+			if os.Getenv("_HANDLER") != "" {
+				// running in lambda, so this is a misconfiguration and the page will be missing every ticketmaster event
+				recordErr("ticketmaster", fmt.Errorf("events: %s not set", TicketmasterApiKeySecretName))
+			}
 			return
 		}
 
 		apiKey, err := secrets.GetSecretString(ctx, ticketmasterApiKeySecretName)
 		if err != nil {
-			recordErr("ticketmater", fmt.Errorf("events: getTicketmasterEvents: could not get ticketmaster secret: %w", err))
+			recordErr("ticketmaster", fmt.Errorf("events: getTicketmasterEvents: could not get ticketmaster secret: %w", err))
 			return
 		}
 
@@ -142,6 +153,8 @@ func GetTodayAndTomorrowGames(ctx context.Context, seattleToday time.Time, seatt
 	})
 
 	wg.Go(func() {
+		defer recoverAs("special_events")
+
 		err := fetchAndAppendEvents(ctx, getSpecialEvents, res, &eventLock, seattleToday, seattleTomorrow)
 		if err != nil {
 			recordErr("special_events", err)
@@ -149,6 +162,8 @@ func GetTodayAndTomorrowGames(ctx context.Context, seattleToday time.Time, seatt
 	})
 
 	wg.Go(func() {
+		defer recoverAs("uw")
+
 		err := fetchAndAppendEvents(ctx, GetUWGames, res, &eventLock, seattleToday, seattleTomorrow)
 		if err != nil {
 			recordErr("uw", err)
