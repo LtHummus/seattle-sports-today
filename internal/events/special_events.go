@@ -63,7 +63,7 @@ func specialEventsForDate(ctx context.Context, t time.Time) ([]*Event, error) {
 
 	paginator := dynamodb.NewQueryPaginator(dynamoClient, queryInput)
 
-	// Strategy: Return partially processed results to caller even on error, they might want to do something with it
+	// return partially processed results to caller even on error, they might want to do something with it
 	for paginator.HasMorePages() {
 		res, err := paginator.NextPage(ctx)
 		if err != nil {
