@@ -68,7 +68,8 @@ func RenderPage(results *events.EventResults, seattleToday time.Time) ([]byte, e
 	// to do that by passing this as a template.HTML already so the templating system will plonk it in there no questions asked.
 
 	//#nosec G203 -- We generate this with no involvement from the end user
-	generatedTimestamp := template.HTML(fmt.Sprintf("<!-- Generated at: %s -->", seattleToday.Format(time.RFC1123)))
+	generatedTime := time.Now().In(events.SeattleTimeZone)
+	generatedTimestamp := template.HTML(fmt.Sprintf("<!-- Generated at: %s -->", generatedTime.Format(time.RFC1123)))
 
 	err := pageTemplate.Execute(buf, &templateParams{
 		Events:            results.TodayEvent,
