@@ -2,6 +2,7 @@ package events
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -93,14 +94,9 @@ func specialEventsForDate(ctx context.Context, t time.Time) ([]*Event, error) {
 }
 
 func getSpecialEvents(ctx context.Context, today time.Time, tomorrow time.Time) ([]*Event, []*Event, error) {
-	todayEvents, err := specialEventsForDate(ctx, today)
-	if err != nil {
-		return nil, nil, err
-	}
-	tomorrowEvents, err := specialEventsForDate(ctx, tomorrow)
-	if err != nil {
-		return nil, nil, err
-	}
+	// specialEventsForDate returns partial results on error, so pass those along and let the caller decide
+	todayEvents, todayErr := specialEventsForDate(ctx, today)
+	tomorrowEvents, tomorrowErr := specialEventsForDate(ctx, tomorrow)
 
-	return todayEvents, tomorrowEvents, nil
+	return todayEvents, tomorrowEvents, errors.Join(todayErr, tomorrowErr)
 }

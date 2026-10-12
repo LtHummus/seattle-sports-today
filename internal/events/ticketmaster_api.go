@@ -3,9 +3,11 @@ package events
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -216,7 +218,12 @@ func (tm *ticketmasterFetcher) getEventsForVenueID(ctx context.Context, venueNam
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return nil, nil, err
+		// *url.Error includes the full request URL, which has our API key in the query string. Strip it so the key
+		// doesn't end up in logs or notifications
+		if uerr, ok := errors.AsType[*url.Error](err); ok {
+			err = uerr.Err
+		}
+		return nil, nil, fmt.Errorf("events: getEventsForVenueID: request to ticketmaster failed: %w", err)
 	}
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
@@ -287,7 +294,7 @@ func (tm *ticketmasterFetcher) getEventsForVenueID(ctx context.Context, venueNam
 }
 
 func (tm *ticketmasterFetcher) GetEvents(ctx context.Context, seattleToday time.Time, seattleTomorrow time.Time) ([]*Event, []*Event, error) {
-	var err error
+	var errs []error
 
 	start := beginningOfDay(seattleToday)
 	end := start.AddDate(0, 0, 2)
@@ -296,16 +303,21 @@ func (tm *ticketmasterFetcher) GetEvents(ctx context.Context, seattleToday time.
 	var tomorrowEvents []*Event
 
 	for venueName, venueID := range tm.venues {
-		err = tm.limiter.Wait(ctx)
+		err := tm.limiter.Wait(ctx)
 		if err != nil {
+			// this only fails if the context is done (or would be before we're allowed to go), so there's no point
+			// trying the remaining venues
 			log.Error().Err(err).Msg("could not wait for ticketmaster rate limiter")
+			errs = append(errs, fmt.Errorf("events: getTicketmasterEvents: could not wait for rate limiter: %w", err))
+			break
 		}
 
-		var foundToday []*Event
-		var foundTomorrow []*Event
-		foundToday, foundTomorrow, err = tm.getEventsForVenueID(ctx, venueName, venueID, start, end, seattleToday, seattleTomorrow)
+		foundToday, foundTomorrow, err := tm.getEventsForVenueID(ctx, venueName, venueID, start, end, seattleToday, seattleTomorrow)
 		if err != nil {
-			return nil, nil, fmt.Errorf("events: getTicketmasterEvents: could not query for ticketmaster data: %w", err)
+			// keep going so one bad venue doesn't wipe out the others
+			log.Error().Err(err).Str("venue_name", venueName).Msg("could not query ticketmaster for venue")
+			errs = append(errs, fmt.Errorf("events: getTicketmasterEvents: could not query for ticketmaster data for %s: %w", venueName, err))
+			continue
 		}
 		if len(foundToday) > 0 {
 			todayEvents = append(todayEvents, foundToday...)
@@ -315,5 +327,5 @@ func (tm *ticketmasterFetcher) GetEvents(ctx context.Context, seattleToday time.
 		}
 	}
 
-	return todayEvents, tomorrowEvents, nil
+	return todayEvents, tomorrowEvents, errors.Join(errs...)
 }

@@ -2,11 +2,14 @@ package notifier
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-xray-sdk-go/v2/xray"
 	"github.com/rs/zerolog/log"
@@ -35,7 +38,9 @@ const (
 	EmojiParty Emoji = "partying_face"
 )
 
-var httpClient = xray.Client(http.DefaultClient)
+var httpClient = xray.Client(&http.Client{
+	Timeout: 10 * time.Second,
+})
 
 func Notify(ctx context.Context, text string, priority Priority, emoji Emoji) error {
 	secretARN := os.Getenv(envVarNotificationSecretName)
@@ -62,6 +67,10 @@ func Notify(ctx context.Context, text string, priority Priority, emoji Emoji) er
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
+		// *url.Error includes the request URL, which contains our secret topic name
+		if uerr, ok := errors.AsType[*url.Error](err); ok {
+			err = uerr.Err
+		}
 		log.Error().Err(err).Msg("could not make ntfy request")
 		return fmt.Errorf("notifier: Notify: could not make request: %w", err)
 	}
@@ -72,6 +81,11 @@ func Notify(ctx context.Context, text string, priority Priority, emoji Emoji) er
 		}
 	}(resp.Body)
 
-	_, _ = io.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		log.Error().Str("status", resp.Status).Str("body", string(body)).Msg("ntfy rejected notification")
+		return fmt.Errorf("notifier: Notify: ntfy returned %s: %s", resp.Status, string(body))
+	}
+
 	return nil
 }

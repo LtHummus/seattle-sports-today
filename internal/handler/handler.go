@@ -52,10 +52,15 @@ func insertToGoogleCalendar(ctx context.Context, events []*events.Event) error {
 	return nil
 }
 
-func EventHandler(ctx context.Context, event CustomEvent) error {
+func EventHandler(ctx context.Context, event CustomEvent) (retErr error) {
 	defer func() {
-		if err := recover(); err != nil {
-			_ = notifier.Notify(context.Background(), fmt.Sprintf("ERROR: uncaught panic: %v", err), notifier.PriorityHigh, notifier.EmojiSiren)
+		if r := recover(); r != nil {
+			retErr = fmt.Errorf("uncaught panic: %v", r)
+			log.Error().Err(retErr).Msg("recovered from panic")
+
+			notifyCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			_ = notifier.Notify(notifyCtx, fmt.Sprintf("ERROR: uncaught panic: %v", r), notifier.PriorityHigh, notifier.EmojiSiren)
 		}
 	}()
 
@@ -80,11 +85,11 @@ func EventHandler(ctx context.Context, event CustomEvent) error {
 	seattleTomorrow = seattleToday.AddDate(0, 0, 1)
 
 	log.Info().Bool("triggered_by_event_bridge", triggeredByEventBridge).Time("seattle_today", seattleToday).Time("seattle_tomorrow", seattleTomorrow).Msg("getting today's games")
-	eventResults, err := events.GetTodayAndTomorrowGames(ctx, seattleToday, seattleTomorrow)
-	if err != nil {
+	eventResults, fetchErr := events.GetTodayAndTomorrowGames(ctx, seattleToday, seattleTomorrow)
+	if fetchErr != nil {
 		// if we have an error, that means at least one source failed. `eventResults` will always be non-nil, so might as well work with what we have and
 		// send an alert to my phone
-		_ = notifier.Notify(ctx, fmt.Sprintf("ERROR: could not get today's games: %s", err.Error()), notifier.PriorityHigh, notifier.EmojiSiren)
+		_ = notifier.Notify(ctx, fmt.Sprintf("ERROR: could not get today's games: %s", fetchErr.Error()), notifier.PriorityHigh, notifier.EmojiSiren)
 	}
 
 	log.Info().Int("today_games_found", len(eventResults.TodayEvent)).Int("tomorrow_games_found", len(eventResults.TomorrowEvents)).Msg("found games")
@@ -139,6 +144,12 @@ func EventHandler(ctx context.Context, event CustomEvent) error {
 	} else {
 		log.Warn().Msg("detected running locally, not uploading")
 		fmt.Printf("%s\n----------\n%s\n", string(jsonData), string(page))
+	}
+
+	if fetchErr != nil {
+		// the page was still published with whatever we could find, but the failure was already reported above, so
+		// don't claim everything worked and make sure the invocation is marked as failed
+		return fmt.Errorf("handler: some event sources failed: %w", fetchErr)
 	}
 
 	log.Info().Msg("all in a day's work...")

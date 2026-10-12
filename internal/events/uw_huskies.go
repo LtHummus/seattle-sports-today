@@ -3,6 +3,7 @@ package events
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -94,13 +95,13 @@ func queryESPNAndAdd(ctx context.Context, url string, teamName string, venue str
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		log.Error().Err(err).Str(seattleTeamKey, teamName).Msg("could not build request")
-		return fmt.Errorf("events: queryESPN: could not build request: %w", err)
+		return fmt.Errorf("events: queryESPN: %s: could not build request: %w", teamName, err)
 	}
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		log.Error().Err(err).Str(seattleTeamKey, teamName).Msg("could not contact ESPN API")
-		return fmt.Errorf("events: queryESPN: could not contact API: %w", err)
+		return fmt.Errorf("events: queryESPN: %s: could not contact API: %w", teamName, err)
 	}
 
 	defer func(Body io.ReadCloser) {
@@ -114,24 +115,25 @@ func queryESPNAndAdd(ctx context.Context, url string, teamName string, venue str
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			log.Error().Str(seattleTeamKey, teamName).Err(err).Str("status_code", resp.Status).Msg("could not read error response body")
-			return fmt.Errorf("events: queryESPN: could not read error body: %w", err)
+			return fmt.Errorf("events: queryESPN: %s: could not read error body: %w", teamName, err)
 		}
 		log.Error().Str(seattleTeamKey, teamName).Str("status_code", resp.Status).Msg("error retrieving data from ESPN")
-		return fmt.Errorf("events: queryESPN: could not retireve data from ESPN: %s", string(body))
+		return fmt.Errorf("events: queryESPN: %s: could not retireve data from ESPN: %s", teamName, string(body))
 	}
 
 	var payload espnTeamResponse
 	err = json.NewDecoder(resp.Body).Decode(&payload)
 	if err != nil {
 		log.Error().Err(err).Str(seattleTeamKey, teamName).Msg("could not decode ESPN response")
-		return fmt.Errorf("events: queryESPNTeam: could not decode ESPN response: %w", err)
+		return fmt.Errorf("events: queryESPNTeam: %s: could not decode ESPN response: %w", teamName, err)
 	}
 
 	if payload.Team.ID == "" || payload.Team.UID == "" {
 		log.Error().Str(seattleTeamKey, teamName).Str("url", url).Msg("empty ESPN payload")
-		return fmt.Errorf("events: queryESPNTeam: empty response payload")
+		return fmt.Errorf("events: queryESPNTeam: %s: empty response payload", teamName)
 	}
 
+	var errs []error
 	for _, curr := range payload.Team.NextEvent {
 		if len(curr.Competitions) <= 0 {
 			log.Warn().Str(seattleTeamKey, teamName).Msg("no games found")
@@ -158,8 +160,10 @@ func queryESPNAndAdd(ctx context.Context, url string, teamName string, venue str
 
 		gameTime, err := time.Parse("2006-01-02T15:04Z", competition.Date)
 		if err != nil {
-			log.Error().Err(err).Str(seattleTeamKey, teamName).Msg("could not parse start time")
-			return fmt.Errorf("events: queryESPNTeam: could not parse start time: %w", err)
+			// skip just this game; still report it, since it probably means ESPN changed their format
+			log.Error().Err(err).Str(seattleTeamKey, teamName).Str("date", competition.Date).Msg("could not parse start time")
+			errs = append(errs, fmt.Errorf("events: queryESPNTeam: %s: could not parse start time: %w", teamName, err))
+			continue
 		}
 
 		seattleStart := gameTime.In(SeattleTimeZone)
@@ -189,27 +193,17 @@ func queryESPNAndAdd(ctx context.Context, url string, teamName string, venue str
 		}
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 func GetUWGames(ctx context.Context, seattleToday time.Time, seattleTomorrow time.Time) ([]*Event, []*Event, error) {
 	var today []*Event
 	var tomorrow []*Event
 
-	err := queryESPNAndAdd(ctx, huskiesFootballURL, huskiesFootballName, huskyStadium, &today, &tomorrow, seattleToday, seattleTomorrow)
-	if err != nil {
-		return nil, nil, err
-	}
+	// query every team even if one fails, so a problem with one sport doesn't hide the others' games
+	footballErr := queryESPNAndAdd(ctx, huskiesFootballURL, huskiesFootballName, huskyStadium, &today, &tomorrow, seattleToday, seattleTomorrow)
+	mensErr := queryESPNAndAdd(ctx, huskiesMensBasketballURL, huskiesMensBasketballName, alaskaAirlinesArena, &today, &tomorrow, seattleToday, seattleTomorrow)
+	womensErr := queryESPNAndAdd(ctx, huskiesWomensBasketballURL, huskiesWomensBasketballName, alaskaAirlinesArena, &today, &tomorrow, seattleToday, seattleTomorrow)
 
-	err = queryESPNAndAdd(ctx, huskiesMensBasketballURL, huskiesMensBasketballName, alaskaAirlinesArena, &today, &tomorrow, seattleToday, seattleTomorrow)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	err = queryESPNAndAdd(ctx, huskiesWomensBasketballURL, huskiesWomensBasketballName, alaskaAirlinesArena, &today, &tomorrow, seattleToday, seattleTomorrow)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return today, tomorrow, nil
+	return today, tomorrow, errors.Join(footballErr, mensErr, womensErr)
 }
